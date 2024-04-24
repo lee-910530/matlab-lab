@@ -1,0 +1,57 @@
+clc;
+clear all;
+%..........glucose concentration-input1...........
+x1 = 40:0.09:400;
+NB = trapezoid_up_wave(x1,50,70);
+NS = triangle_wave(x1,50,70,75);
+NOM = triangle_wave(x1,70,75,80);
+PS = triangle_wave(x1,75,80,150);
+PM = triangle_wave(x1,75,150,225);
+PB = triangle_wave(x1,150,225,300);
+PL = trapezoid_down_wave(x1,225,300);
+figure('name','glucose concentration-input1');
+plot(x1,NB,"b",x1,NS,"g",x1,NOM,"r",x1,PS,"c",x1,PL,"k");
+hold on;
+plot(x1,PM,"Color","#E020F0")
+hold on;
+plot(x1,PB,"Color","#E09010")
+xlim([40,400])
+%..........glucose deviation-input2...........
+x2 = -20:0.01:20;
+neg = triangle_wave(x2,-20,-20,0);
+zero = triangle_wave(x2,-1,0,1);
+pos = triangle_wave(x2,0,20,20);
+figure('name','glucose deviation-input2');
+plot(x2,neg,"b",x2,zero,"g",x2,pos,"r");
+
+
+%..........function...........
+function trap = trapezoid_up_wave(t,start,fin)
+    num = 0;
+    for i = t
+        num = num + 1;
+        if i < start
+            trap(num) = 1;
+        elseif i >= fin
+            trap(num) = 0;
+        elseif i >= start && i < fin
+            trap(num) = 1/(start - fin) * (i - fin);
+        end
+    end
+end
+
+function trap = trapezoid_down_wave(t,start,fin)
+    num = 0;
+    for i = t
+        num = num + 1;
+        if i < start
+            trap(num) = 0;
+        elseif i >= fin
+            trap(num) = 1;
+        elseif i >= start && i < fin
+            trap(num) = 1/(fin - start) * (i - start);
+        end
+    end
+end
+
+function tri = triangle_wave(t,start,middle,fin)
