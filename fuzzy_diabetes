@@ -23,6 +23,21 @@ zero = triangle_wave(x2,-1,0,1);
 pos = triangle_wave(x2,0,20,20);
 figure('name','glucose deviation-input2');
 plot(x2,neg,"b",x2,zero,"g",x2,pos,"r");
+%..........insulin infusion rate-output...........
+y = -1:0.09/40:8;
+NB = triangle_wave(y,-1,-0.6,-0.2);
+NS = triangle_wave(y,-0.4,-0.2,0.2);
+Z = triangle_wave(y,-0.2,0.2,0.6);
+PS = triangle_wave(y,0.2,0.6,2);
+PM = triangle_wave(y,0.6,2,4);
+PB = triangle_wave(y,2,4,6);
+PL = triangle_wave(y,4,6,8);
+figure('name','insulin infusion rate-output');
+plot(y,NB,"b",y,NS,"g",y,Z,"r",y,PS,"c",y,PL,"k");
+hold on;
+plot(y,PM,"Color","#E020F0")
+hold on;
+plot(y,PB,"Color","#E09010")
 
 
 %..........function...........
@@ -55,3 +70,17 @@ function trap = trapezoid_down_wave(t,start,fin)
 end
 
 function tri = triangle_wave(t,start,middle,fin)
+    num = 0;
+    for i = t
+        num = num + 1;
+        if i < start
+            tri(num) = 0;
+        elseif i >= fin
+            tri(num) = 0;
+        elseif i >= start && i < middle
+            tri(num) = 1/(middle-start)*(i-start);
+        else 
+            tri(num) = 1/(middle-fin)*(i-fin);
+        end
+    end
+end
