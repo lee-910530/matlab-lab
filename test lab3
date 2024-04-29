@@ -4,33 +4,15 @@ clear all;
 %..........
 %.......data........
 h = 0.05;
-fin = 1000;
+fin = 1500;
 tn = 0:h:fin
 
-G_pat3(1) = 70;
+G_pat3(1) = 70 ;
 X_pat3(1) = 0;
 I_pat3(1) = 7;
-U(1) = 0;
 
-G_pat3_d = zeros(1,fin/h+1);
 G_pat3_d = zeros(1,fin/h+1);
 U = zeros(1,fin/h+1);
-
-G_normal(1) = 70;
-X_normal(1) = 0;
-I_normal(1) = 7;
-
-
-w1 = 1;
-w2 = 1;
-w3 = 1;
-w4 = 1;
-w5 = 1;
-w6 = 1;
-w7 = 1;
-w8 = 1;
-w9 = 1;
-ETA = 0.5;
 
 x = fin/h;
 %..........glucose concentration-input1...........
@@ -74,63 +56,70 @@ PM_o = triangle_wave(y,0.6,2,4);
 PB_o = triangle_wave(y,2,4,6);
 PL_o = triangle_wave(y,4,6,8);
 
-figure('name','insulin infusion rate-output');
-plot(y,NB_o,"b",y,NS_o,"g",y,Z_o,"r",y,PS_o,"c",y,PL_o,"k");
-hold on;
-plot(y,PM_o,"Color","#E020F0")
-hold on;
-plot(y,PB_o,"Color","#E09010")
-title("insulin infusion rate-output")
-xlabel("insulin infusion rate(microU/min/mg)")
+% figure('name','insulin infusion rate-output');
+% plot(y,NB_o,"b",y,NS_o,"g",y,Z_o,"r",y,PS_o,"c",y,PL_o,"k");
+% hold on;
+% plot(y,PM_o,"Color","#E020F0")
+% hold on;
+% plot(y,PB_o,"Color","#E09010")
+% title("insulin infusion rate-output")
+% xlabel("insulin infusion rate(microU/min/mg)")
 
 %.............patient3................
 num = 1;
 for i = tn
     G_pat3_d(num) = G_p3(i,G_pat3(num),X_pat3(num),I_pat3(num));
 
-    q1 = round(G_pat3(num)/0.02) + 1;
-%     q1 = G_pat3(num);
-    q2 = round((G_pat3_d(num)+20)/0.002) + 1;
+    q1 = G_pat3(num);
+    q2 = G_pat3_d(num);
 
-    w1 = min(PL(q1),neg(q2));  %PL
-%     if q1 < 225
-%         mu1 = 0;
-%     elseif q1 >= 300
-%         mu1 = 1;
-%     elseif q1 >= 225 && q1 < 300
-%         mu1 = 1/(300 - 225) * (i - 225);
-%     end
-    w2 = min(PL(q1),zero(q2)); %PL
-    w3 = min(PL(q1),pos(q2));  %PL
-    w4 = min(PB(q1),neg(q2));  %PB
-    w5 = min(PB(q1),zero(q2)); %PB
-    w6 = min(PB(q1),pos(q2));  %PL
-    w7 = min(PM(q1),neg(q2));  %PM
-    w8 = min(PM(q1),zero(q2)); %PM
-    w9 = min(PM(q1),pos(q2));  %PM
-    w10 = min(PS(q1),neg(q2)); %PS
-    w11 = min(PS(q1),zero(q2));%PS
-    w12 = min(PS(q1),pos(q2)); %PS
-    w13 = min(NOM(q1),neg(q2));%Z
-    w14 = min(NOM(q1),zero(q2));%Z
-    w15 = min(NOM(q1),pos(q2)); %Z
-    w16 = min(NS(q1),neg(q2));  %NB
-    w17 = min(NS(q1),zero(q2)); %NS
-    w18 = min(NS(q1),pos(q2));  %NS
-    w19 = min(NB(q1),neg(q2));  %NB
-    w20 = min(NB(q1),zero(q2)); %NB
-    w21 = min(NB(q1),pos(q2));  %NB
+    mu1 = trape_up_member(q1,40,50);
+    mu2 = tri_member(q1,50,55,90);
+    mu3 = tri_member(q1,70,75,80);
+    mu4 = tri_member(q1,60,80,100);
+    mu5 = tri_member(q1,75,150,225);
+    mu6 = tri_member(q1,200,250,300);
+    mu7 = trape_down_member(q1,225,400);
 
-    PL_o = max([w1,w2,w3,w6]);
-    PB_o = max([w4,w5]);
-    PM_o = max([w7,w8,w9]);
-    PS_o = max([w10,w11,w12]);
-    Z_o = max([w13,w14,w15]);
-    NS_o = max([w17,w18]);
-    NB_o = max([w16,w19,w20,w21]);
+    mu8 = tri_member(q2,-20,-20,0);
+    mu9 = tri_member(q2,-2,0,2);
+    mu10 = tri_member(q2,0,20,20);
+        
+    w1 = min(mu7,mu8);  %PL
+    w2 = min(mu7,mu9); %PL
+    w3 = min(mu7,mu10);  %PL
+    w4 = min(mu6,mu8);  %PB
+    w5 = min(mu6,mu9); %PB
+    w6 = min(mu6,mu10);  %PL
+    w7 = min(mu5,mu8);  %PM
+    w8 = min(mu5,mu9); %PM
+    w9 = min(mu5,mu10);  %PM
+    w10 = min(mu4,mu8); %PS
+    w11 = min(mu4,mu9);%PS
+    w12 = min(mu4,mu10); %PS
+    w13 = min(mu3,mu8);%Z
+    w14 = min(mu3,mu9);%Z
+    w15 = min(mu3,mu10); %Z
+    w16 = min(mu2,mu8);  %NB
+    w17 = min(mu2,mu9); %NS
+    w18 = min(mu2,mu10);  %NS
+    w19 = min(mu1,mu8);  %NB
+    w20 = min(mu1,mu9); %NB
+    w21 = min(mu1,mu10);  %NB
 
-    U(num) = (NB_o*(-0.5)+NS_o*(-0.2)+Z_o*0.2+PS_o*0.5+PM_o*2+PB_o*4+PL_o*6) / (NB_o+NS_o+Z_o+PS_o+PM_o+PB_o+PL_o);
+    NB_o = -1;
+    NS_o = -0.2;
+    Z_o = 0;
+    PS_o = 0.5;
+    PM_o = 1;
+    PB_o = 3;
+    PL_o = 4;
+    
+    nn = (w1*PL_o+w2*PL_o+w3*PL_o+w4*PB_o+w5*PB_o+w6*PL_o+w7*PM_o+w8*PM_o+w9*PM_o+w10*PS_o ...
+        +w11*PS_o+w12*PS_o+w13*Z_o+w14*Z_o+w15*Z_o+w16*NB_o+w17*NS_o+w18*NS_o+w19*NB_o+w20*NB_o+w21*NB_o)...
+        /(w1+w2+w3+w4+w5+w6+w7+w8+w9+w10+w11+w12+w13+w14+w15+w16+w17+w18+w19+w20+w21);
 
+    U(num) = sat(nn);
 
     k1 = G_p3(i,G_pat3(num),X_pat3(num),I_pat3(num));
     l1 = X_p3(i,G_pat3(num),X_pat3(num),I_pat3(num));
@@ -156,121 +145,49 @@ for i = tn
        num = num +1;
 end
 figure(6)
+subplot(3,1,3)
 plot(tn,U)
 title('u(t)')
-ylabel('insulin infusion')
+ylabel('(MicroU)/mg/min2')
 xlabel('time(min)')
 
-figure(7)
-plot(tn,G_pat3_d)
-title('patient3 dG(t)/dt')
+subplot(3,1,2)
+plot(tn,I_pat3)
+title('insulin')
 xlabel('time(min)')
+ylabel('(MicroU/ml)')
 
-figure(8)
+subplot(3,1,1)
 plot(tn,G_pat3)
 title('patient3 G(t)')
+ylabel('(mg/dl)')
 xlabel('time(min)')
 
-figure(9)
-plot(tn,I_pat3)
-title('patient3 I(t)')
-xlabel('time(min)')
-%.............normal.....
-%.............normal................
-% num = 1;
-% for i = tn
-%     k1 = G_no(i,G_normal(num),X_normal(num),I_normal(num));
-%     l1 = X_no(i,G_normal(num),X_normal(num),I_normal(num));
-%     j1 = I_no(i,G_normal(num),X_normal(num),I_normal(num),0);
-% 
-%     k2 = G_no(i + h/2,G_normal(num) + h*k1/2,X_normal(num) + h*l1/2,I_normal(num) + h*j1/2);
-%     l2 = X_no(i + h/2,G_normal(num) + h*k1/2,X_normal(num) + h*l1/2,I_normal(num) + h*j1/2);
-%     j2 = I_no(i + h/2,G_normal(num) + h*k1/2,X_normal(num) + h*l1/2,I_normal(num) + h*j1/2,0);
-% 
-%     k3 = G_no(i + h/2,G_normal(num) + h*k2/2,X_normal(num) + h*l2/2,I_normal(num) + h*j2/2);
-%     l3 = X_no(i + h/2,G_normal(num) + h*k2/2,X_normal(num) + h*l2/2,I_normal(num) + h*j2/2);
-%     j3 = I_no(i + h/2,G_normal(num) + h*k2/2,X_normal(num) + h*l2/2,I_normal(num) + h*j2/2,0);
-%     
-%     k4 = G_no(i + h,G_normal(num) + h*k3,X_normal(num) + h*l3,I_normal(num) + h*j3);
-%     l4 = X_no(i + h,G_normal(num) + h*k3,X_normal(num) + h*l3,I_normal(num) + h*j3);
-%     j4 = I_no(i + h,G_normal(num) + h*k3,X_normal(num) + h*l3,I_normal(num) + h*j3,0);
-%     
-%     if num <= x
-%         G_normal(num+1) = G_normal(num) + h*(k1+2*k2+2*k3+k4)/6;
-%         X_normal(num+1) = X_normal(num) + h*(l1+2*l2+2*l3+l4)/6;
-%         I_normal(num+1) = I_normal(num) + h*(j1+2*j2+2*j3+j4)/6;
-%     end
-% 
-%     num = num + 1;
-% end
-%...........................
-
-%.............patient3................
-num = 1;
-for i = tn
-    k1 = G_p3(i,G_pat3(num),X_pat3(num),I_pat3(num));
-    l1 = X_p3(i,G_pat3(num),X_pat3(num),I_pat3(num));
-    j1 = I_p3(i,G_pat3(num),X_pat3(num),I_pat3(num),U(num));
-
-    k2 = G_p3(i + h/2,G_pat3(num) + h*k1/2,X_pat3(num) + h*l1/2,I_pat3(num) + h*j1/2);
-    l2 = X_p3(i + h/2,G_pat3(num) + h*k1/2,X_pat3(num) + h*l1/2,I_pat3(num) + h*j1/2);
-    j2 = I_p3(i + h/2,G_pat3(num) + h*k1/2,X_pat3(num) + h*l1/2,I_pat3(num) + h*j1/2,U(num));
-
-    k3 = G_p3(i + h/2,G_pat3(num) + h*k2/2,X_pat3(num) + h*l2/2,I_pat3(num) + h*j2/2);
-    l3 = X_p3(i + h/2,G_pat3(num) + h*k2/2,X_pat3(num) + h*l2/2,I_pat3(num) + h*j2/2);
-    j3 = I_p3(i + h/2,G_pat3(num) + h*k2/2,X_pat3(num) + h*l2/2,I_pat3(num) + h*j2/2,U(num));
-    
-    k4 = G_p3(i + h,G_pat3(num) + h*k3,X_pat3(num) + h*l3,I_pat3(num) + h*j3);
-    l4 = X_p3(i + h,G_pat3(num) + h*k3,X_pat3(num) + h*l3,I_pat3(num) + h*j3);
-    j4 = I_p3(i + h,G_pat3(num) + h*k3,X_pat3(num) + h*l3,I_pat3(num) + h*j3,U(num));
-    
-    if num < x +1
-        G_pat3(num+1) = G_pat3(num) + h*(k1+2*k2+2*k3+k4)/6;
-        X_pat3(num+1) = X_pat3(num) + h*(l1+2*l2+2*l3+l4)/6;
-        I_pat3(num+1) = I_pat3(num) + h*(j1+2*j2+2*j3+j4)/6;
-    end
- num = num + 1;
+function g = G(t,p1,Gb,G,X,I,D)
+    g = -p1*(G-Gb)-X*G + D;
+end
+  
+function x = X(t,p2,p3,Ib,X,I)
+    x = -p2*X+p3*(I-Ib);
 end
 
-figure(12)
-plot(tn,G_pat3)
-title('new patient3 G(t)')
-xlabel('time(min)')
 
 %..........patient3..........
 function g_p3 = G_p3(t,G,X,I)
     w = t-360;
     w(w<0) = inf;
-    g_p3 = -0*(G-70)-X*G + 1.7*exp(-0.03*t)+ 1.7*exp(-0.03*w);
+    g_p3 = -0*(G-75)-X*G + 1.6*exp(-0.03*t);
+%     + 1*exp(-0.5*w)
 end
 
 function x_p3 = X_p3(t,G,X,I)
-    x_p3 = -0.02*X + 5.3*10^-6*(I-7);
+    x_p3 = -0.02*X + 5.3*(10^-6)*(I-7);
 end
 
 function i_p3 = I_p3(t,G,X,I,u)
     i_p3 = -0.3*(I-7) + u;
 end
 
-%..........normal..........
-function g_no = G_no(t,G,X,I)
-    w = t-360;
-    w(w<0) = inf;
-    g_no = -0.0317*(G-70)-X*G + 1.7*exp(-0.03*t)+ 1.7*exp(-0.03*w);
-end
-
-function x_no = X_no(t,G,X,I)
-    x_no = -0.0123*X + 4.92*10^-6*(I-7);
-end
-
-function i_no = I_no(t,G,X,I,u)
-    if G-79.0353 > 0
-        x = G-79.0353;
-    else 
-        x = 0;
-    end
-    i_no = -0.2659*(I-7) + 0.0039*x*t + u;
-end
 
 %..........function...........
 function trap = trapezoid_up_wave(t,start,fin)
@@ -315,4 +232,47 @@ function tri = triangle_wave(t,start,middle,fin)
             tri(num) = 1/(middle-fin)*(i-fin);
         end
     end
+end
+
+function mem = tri_member(i,start,middle,fin)
+    if i < start
+        mem = 0;
+    elseif i >= fin
+        mem = 0;
+    elseif i >= start && i < middle
+        mem = 1/(middle-start)*(i-start);
+    else 
+        mem = 1/(middle-fin)*(i-fin);
+    end
+end
+
+function mem1 = trape_down_member(i,start,fin)
+    if i < start
+        mem1 = 0;
+    elseif i >= fin
+        mem1 = 1;
+    elseif i >= start && i < fin
+        mem1 = 1/(fin - start) * (i - start);
+    end
+end
+
+function mem2 = trape_up_member(i,start,fin)
+    if i < start
+        mem2 = 1;
+    elseif i >= fin
+        mem2 = 0;
+    elseif i >= start && i < fin
+        mem2 = 1/(start - fin) * (i - fin);
+    end
+end
+
+function y=sat(x);
+% sat is the saturation function with unit limits and unit slope.
+if x>1
+    y=1;
+elseif x<0 
+    y=0;
+else 
+    y=x;
+end
 end
