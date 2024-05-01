@@ -1,0 +1,280 @@
+clc;
+close all;
+clear all;
+%..........
+%.......data........
+h = 0.05;
+fin = 1000;
+tn = 0:h:fin
+
+weight_1 = 220;
+weight_2 = 220;
+weight_3 = 220;
+weight_4 = 220;
+weight_5 = 220;
+weight_6 = 220;
+weight_7 = 220;
+weight_8 = 220;
+weight_9 = 220;
+ETA = 0.01;
+
+G_pat1(1) = 220;
+G_pat1I(1) = 220;
+X_pat1(1) = 0;
+I_pat1(1) = 50;
+I3 = zeros(1,fin/h+1);
+X3 = zeros(1,fin/h+1);
+G3 = zeros(1,fin/h+1);
+
+G_normal(1) = 291.2;
+X_normal(1) = 0;
+I_normal(1) = 364.8;
+In = zeros(1,fin/h+1);
+Xn = zeros(1,fin/h+1);
+Gn = zeros(1,fin/h+1);
+
+u_r = -0.5:0.0001:2.5;
+g_r = 0:0.0125:350;
+
+mf1_1 = 1./(1+exp(10*(u_r-0.5)));
+mf1_2 = exp(-((u_r-1)/0.4).^2);
+mf1_3 = 1./(1+exp(-10*(u_r-1.5)));
+
+figure(2)
+plot(u_r,mf1_1,u_r,mf1_2,u_r,mf1_3);
+title('u(k)-gaussion membership functions')
+xlabel('x')
+legend({'mf1_1','mf1_2','mf1_3'},'Location','northeast')
+hold on;
+
+%...........y(k-1)_mf..............
+mf2_1 = 1./(1+exp(0.05*(g_r-150)));
+mf2_2 = exp(-((g_r-175)/50).^2);
+mf2_3 = 1./(1+exp(-0.05*(g_r-200)));
+
+figure(3)
+plot(g_r,mf2_1,g_r,mf2_2,g_r,mf2_3);
+title('g(k-1)-gaussion membership functions')
+xlabel('g(k-1)')
+legend({'mf2_1','mf2_2','mf2_3'},'Location','southwest')
+hold on;
+
+%.......runge kutta patient........
+x = fin/h;
+
+num = 1;
+for i = tn
+    k1 = G_p1(tn(num),G_pat1(num),X_pat1(num),I_pat1(num));
+    l1 = X_p1(tn(num),G_pat1(num),X_pat1(num),I_pat1(num));
+    j1 = I_p1(tn(num),G_pat1(num),X_pat1(num),I_pat1(num),0);
+
+    k2 = G_p1(tn(num) + h/2,G_pat1(num) + h*k1/2,X_pat1(num) + h*l1/2,I_pat1(num) + h*j1/2);
+    l2 = X_p1(tn(num) + h/2,G_pat1(num) + h*k1/2,X_pat1(num) + h*l1/2,I_pat1(num) + h*j1/2);
+    j2 = I_p1(tn(num) + h/2,G_pat1(num) + h*k1/2,X_pat1(num) + h*l1/2,I_pat1(num) + h*j1/2,0);
+
+    k3 = G_p1(tn(num) + h/2,G_pat1(num) + h*k2/2,X_pat1(num) + h*l2/2,I_pat1(num) + h*j2/2);
+    l3 = X_p1(tn(num) + h/2,G_pat1(num) + h*k2/2,X_pat1(num) + h*l2/2,I_pat1(num) + h*j2/2);
+    j3 = I_p1(tn(num) + h/2,G_pat1(num) + h*k2/2,X_pat1(num) + h*l2/2,I_pat1(num) + h*j2/2,0);
+    
+    k4 = G_p1(tn(num) + h,G_pat1(num) + h*k3,X_pat1(num) + h*l3,I_pat1(num) + h*j3);
+    l4 = X_p1(tn(num) + h,G_pat1(num) + h*k3,X_pat1(num) + h*l3,I_pat1(num) + h*j3);
+    j4 = I_p1(tn(num) + h,G_pat1(num) + h*k3,X_pat1(num) + h*l3,I_pat1(num) + h*j3,0);
+
+    if num <= x
+        G_pat1(num+1) = G_pat1(num) + h*(k1+2*k2+2*k3+k4)/6;
+        X_pat1(num+1) = X_pat1(num) + h*(l1+2*l2+2*l3+l4)/6;
+        I_pat1(num+1) = I_pat1(num) + h*(j1+2*j2+2*j3+j4)/6;
+    end  
+%.......runge kutta normal........
+    k1 = G_no(tn(num),G_normal(num),X_normal(num),I_normal(num));
+    l1 = X_no(tn(num),G_normal(num),X_normal(num),I_normal(num));
+    j1 = I_no(tn(num),G_normal(num),X_normal(num),I_normal(num),0);
+
+    k2 = G_no(tn(num) + h/2,G_normal(num) + h*k1/2,X_normal(num) + h*l1/2,I_normal(num) + h*j1/2);
+    l2 = X_no(tn(num) + h/2,G_normal(num) + h*k1/2,X_normal(num) + h*l1/2,I_normal(num) + h*j1/2);
+    j2 = I_no(tn(num) + h/2,G_normal(num) + h*k1/2,X_normal(num) + h*l1/2,I_normal(num) + h*j1/2,0);
+
+    k3 = G_no(tn(num) + h/2,G_normal(num) + h*k2/2,X_normal(num) + h*l2/2,I_normal(num) + h*j2/2);
+    l3 = X_no(tn(num) + h/2,G_normal(num) + h*k2/2,X_normal(num) + h*l2/2,I_normal(num) + h*j2/2);
+    j3 = I_no(tn(num) + h/2,G_normal(num) + h*k2/2,X_normal(num) + h*l2/2,I_normal(num) + h*j2/2,0);
+    
+    k4 = G_no(tn(num) + h,G_normal(num) + h*k3,X_normal(num) + h*l3,I_normal(num) + h*j3);
+    l4 = X_no(tn(num) + h,G_normal(num) + h*k3,X_normal(num) + h*l3,I_normal(num) + h*j3);
+    j4 = I_no(tn(num) + h,G_normal(num) + h*k3,X_normal(num) + h*l3,I_normal(num) + h*j3,0);
+
+    if num <= x
+        G_normal(num+1) = G_normal(num) + h*(k1+2*k2+2*k3+k4)/6;
+        X_normal(num+1) = X_normal(num) + h*(l1+2*l2+2*l3+l4)/6;
+        I_normal(num+1) = I_normal(num) + h*(j1+2*j2+2*j3+j4)/6;
+    end
+
+        %.......patient RFNN........
+        w_p1(1) = weight_1;
+        w_p2(1) = weight_2;
+        w_p3(1) = weight_3;
+        w_p4(1) = weight_4;
+        w_p5(1) = weight_5;
+        w_p6(1) = weight_6;
+        w_p7(1) = weight_7;
+        w_p8(1) = weight_8;
+        w_p9(1) = weight_9;
+    
+        mf1_1 = 1./(1+exp(10*(1-0.5)));
+        mf1_2 = exp(-((1-1)/0.4).^2);
+        mf1_3 = 1./(1+exp(-10*(1-1.5)));
+    
+        mf2_1 = 1./(1+exp(0.05*(G_pat1(num)-150)));
+        mf2_2 = exp(-((G_pat1(num)-175)/50).^2);
+        mf2_3 = 1./(1+exp(-0.05*(G_pat1(num)-200)));
+    
+    
+            
+        o3_1 = mf1_1*mf2_1;
+        o3_2 = mf1_1*mf2_2;
+        o3_3 = mf1_1*mf2_3;
+        o3_4 = mf1_2*mf2_1;
+        o3_5 = mf1_2*mf2_2;
+        o3_6 = mf1_2*mf2_3;
+        o3_7 = mf1_3*mf2_1;
+        o3_8 = mf1_3*mf2_2;
+        o3_9 = mf1_3*mf2_3;
+        
+        G_pat1I(num) = (w_p1(num)*o3_1 + w_p2(num)*o3_2+ w_p3(num)*o3_3 + w_p4(num)*o3_4 ...
+            + w_p5(num)*o3_5 + w_p6(num)*o3_6 + w_p7(num)*o3_7 + w_p8(num)*o3_8 + w_p9(num)*o3_9)...
+            /(o3_1 + o3_2 + o3_3 + o3_4 + o3_5 + o3_6 + o3_7 + o3_8 + o3_9);
+        
+        w_p1(num+1) = w_p1(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_1;
+        w_p2(num+1) = w_p2(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_2;
+        w_p3(num+1) = w_p3(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_3;
+        w_p4(num+1) = w_p4(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_4;
+        w_p5(num+1) = w_p5(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_5;
+        w_p6(num+1) = w_p6(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_6;
+        w_p7(num+1) = w_p7(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_7;
+        w_p8(num+1) = w_p8(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_8;
+        w_p9(num+1) = w_p9(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_9;
+        %.......normal RFNN........
+        w_n1(1) = 291.2;
+        w_n2(1) = 291.2;
+        w_n3(1) = 291.2;
+        w_n4(1) = 291.2;
+        w_n5(1) = 291.2;
+        w_n6(1) = 291.2;
+        w_n7(1) = 291.2;
+        w_n8(1) = 291.2;
+        w_n9(1) = 291.2;
+    
+    
+        mf1_1 = 1./(1+exp(10*(1-0.5)));
+        mf1_2 = exp(-((1-1)/0.4).^2);
+        mf1_3 = 1./(1+exp(-10*(1-1.5)));
+    
+        mf2_1 = 1./(1+exp(0.05*(G_normal(num)-150)));
+        mf2_2 = exp(-((G_normal(num)-175)/50).^2);
+        mf2_3 = 1./(1+exp(-0.05*(G_normal(num)-200)));
+    
+        o3_1 = mf1_1*mf2_1;
+        o3_2 = mf1_1*mf2_2;
+        o3_3 = mf1_1*mf2_3;
+        o3_4 = mf1_2*mf2_1;
+        o3_5 = mf1_2*mf2_2;
+        o3_6 = mf1_2*mf2_3;
+        o3_7 = mf1_3*mf2_1;
+        o3_8 = mf1_3*mf2_2;
+        o3_9 = mf1_3*mf2_3;
+            
+        G_normalI(num) = (w_n1(num)*o3_1 + w_n2(num)*o3_2+ w_n3(num)*o3_3 + w_n4(num)*o3_4 ...
+            + w_n5(num)*o3_5 + w_n6(num)*o3_6 + w_n7(num)*o3_7 + w_n8(num)*o3_8 + w_n9(num)*o3_9)...
+            /(o3_1 + o3_2 + o3_3 + o3_4 + o3_5 + o3_6 + o3_7 + o3_8 + o3_9);
+        
+        w_n1(num+1) = w_n1(num) + ETA * (G_normal(num)-G_normalI(num)) * o3_1;
+        w_n2(num+1) = w_n2(num) + ETA * (G_normal(num)-G_normalI(num)) * o3_2;
+        w_n3(num+1) = w_n3(num) + ETA * (G_normal(num)-G_normalI(num)) * o3_3;
+        w_n4(num+1) = w_n4(num) + ETA * (G_normal(num)-G_normalI(num)) * o3_4;
+        w_n5(num+1) = w_n5(num) + ETA * (G_normal(num)-G_normalI(num)) * o3_5;
+        w_n6(num+1) = w_n6(num) + ETA * (G_normal(num)-G_normalI(num)) * o3_6;
+        w_n7(num+1) = w_n7(num) + ETA * (G_normal(num)-G_normalI(num)) * o3_7;
+        w_n8(num+1) = w_n8(num) + ETA * (G_normal(num)-G_normalI(num)) * o3_8;
+        w_n9(num+1) = w_n9(num) + ETA * (G_normal(num)-G_normalI(num)) * o3_9;
+
+    num =num +1;
+
+end
+
+figure(4)
+plot(tn,G_pat1)
+hold on
+plot(tn,G_pat1I,'--b');
+hold on;
+plot(tn,G_normal)
+hold on
+plot(tn,G_normalI,'--r');
+legend({'pat1','pat1_RFNN','normal','normal_RFNN'},'Location','northeast')
+ylabel('glucose concentration')
+xlabel('time')
+xlim([-5,40])
+ylim([150,250])
+
+
+
+figure(5)
+plot(tn,G_pat1)
+hold on
+plot(tn,G_pat1I,'--b');
+hold on;
+plot(tn,G_normal)
+hold on
+plot(tn,G_normalI,'--r');
+legend({'pat1','pat1_RFNN','normal','normal_RFNN'},'Location','northeast')
+ylabel('glucose concentration')
+xlabel('time')
+
+
+function g = G_n(t,p1,Gb,G,X,I)
+    w = t-500;
+    w(w<0) = inf;
+    g = -p1*(G-Gb)-X*G +0;
+end
+  
+function x = X_n(t,p2,p3,Ib,G,X,I)
+    x = -p2*X+p3*(I-Ib);
+end
+
+function i = I_n(t,n,Ib,r,h,G,X,I,u)
+    x = max(G-h,0);
+    i = -n*(I-Ib)+r*x*t+u;
+end
+
+
+%..........patient1..........
+function g_p1 = G_p1(t,G,X,I)
+    g_p1 = G_n(t,0,70,G,X,I);
+end
+
+function x_p1 = X_p1(t,G,X,I)
+    x_p1 = X_n(t,0.02,5.3*10^-6,7,G,X,I);
+
+end
+
+function i_p1 = I_p1(t,G,X,I,u)
+ %   i_p1 = I_n(t,0.3,7,0.005,78,G,X,I,u);
+     i_p1 = I_n(t,0.3,7,0,78,G,X,I,u);
+end
+
+%..........normal..........
+function g_no = G_no(t,G,X,I)
+    g_no = -0.0317*(G-70)-X*G + 0*exp(-360*t);
+end
+
+function x_no = X_no(t,G,X,I)
+    x_no = -0.0123*X + 4.92*10^-6*(I-7);
+end
+
+function i_no = I_no(t,G,X,I,u)
+    if G-79.0353 > 0
+        x = G-79.0353;
+    else 
+        x = 0;
+    end
+    i_no = -0.2659*(I-7) + 0.0039*x*t + u;
+end
+
