@@ -4,7 +4,7 @@ clear all;
 %..........
 %.......data........
 h = 0.05;
-fin = 1500;
+fin = 3000;
 tn = 0:h:fin
 
 G_pat1(1) = 70;
@@ -110,20 +110,20 @@ for i = tn
     w20 = min(mu1,mu9); %NB
     w21 = min(mu1,mu10);  %NB
 
+%     NB_o = -0.5;
+%     NS_o = -0.2;
+%     Z_o = 0.1;
+%     PS_o = 0.5;
+%     PM_o = 2;
+%     PB_o = 4;
+%     PL_o = 6;
     NB_o = -0.5;
-    NS_o = -0.2;
+    NS_o = -0.3;
     Z_o = 0.1;
-    PS_o = 0.5;
+    PS_o = 0.3;
     PM_o = 2;
     PB_o = 4;
     PL_o = 6;
-%     NB_o = -1;
-%     NS_o = -0.2;
-%     Z_o = 0;
-%     PS_o = 0.5;
-%     PM_o = 1;
-%     PB_o = 3;
-%     PL_o = 4;
     
     nn = (w1*PL_o+w2*PL_o+w3*PL_o+w4*PB_o+w5*PB_o+w6*PL_o+w7*PM_o+w8*PM_o+w9*PM_o+w10*PS_o ...
         +w11*PS_o+w12*PS_o+w13*Z_o+w14*Z_o+w15*Z_o+w16*NB_o+w17*NS_o+w18*NS_o+w19*NB_o+w20*NB_o+w21*NB_o)...
@@ -301,7 +301,7 @@ xlabel('time(min)')
 function g = G_n(t,p1,Gb,G,X,I)
     w = t-500;
     w(w<0) = inf;
-    g = -p1*(G-Gb)-X*G + 0.3*exp(-0.02*t)+ 0.3*exp(-0.02*w);
+    g = -p1*(G-Gb)-X*G + 0.2*exp(-0.02*t)+ 0.2*exp(-0.02*w);
 end
   
 function x = X_n(t,p2,p3,Ib,G,X,I)
@@ -442,9 +442,7 @@ end
 
 function y=sat(x);
 % sat is the saturation function with unit limits and unit slope.
-if x>1
-    y=1;
-elseif x<0 
+if x<0 
     y=0;
 else 
     y=x;
@@ -452,28 +450,42 @@ end
 end
 
 function [mu1,mu2,mu3,mu4,mu5,mu6,mu7,mu8,mu9,mu10] = MU(q1,q2)
-    mu1 = trape_up_member(q1,50,70);
-    mu2 = tri_member(q1,50,70,75);
-    mu3 = tri_member(q1,70,75,80);
-    mu4 = tri_member(q1,75,80,150);
-    mu5 = tri_member(q1,75,150,225);
-    mu6 = tri_member(q1,150,225,300);
-    mu7 = trape_down_member(q1,225,300);
-
-    mu8 = tri_member(q2,-20,-20,0);
-    mu9 = tri_member(q2,-2,0,2);
-    mu10 = tri_member(q2,0,20,20);
-
-%     mu1 = trape_up_member(q1,40,50);
-%     mu2 = tri_member(q1,50,55,90);
-%     mu3 = tri_member(q1,70,75,80);
-%     mu4 = tri_member(q1,60,80,100);
+%     mu1 = trape_up_member(q1,40,60);
+%     mu2 = tri_member(q1,50,60,75);
+%     mu3 = tri_member(q1,60,75,80);
+%     mu4 = tri_member(q1,75,78,100);
 %     mu5 = tri_member(q1,75,150,225);
-%     mu6 = tri_member(q1,200,250,300);
-%     mu7 = trape_down_member(q1,225,400);
+%     mu6 = tri_member(q1,150,225,300);
+%     mu7 = trape_down_member(q1,225,300);
 % 
 %     mu8 = tri_member(q2,-20,-20,0);
-%     mu9 = tri_member(q2,-2,0,2);
+%     mu9 = tri_member(q2,-5,0,5);
 %     mu10 = tri_member(q2,0,20,20);
+
+%     mu1 = trape_up_member(q1,50,70);
+%     mu2 = tri_member(q1,64,68,72);
+%     mu3 = tri_member(q1,65,71,75);
+%     mu4 = tri_member(q1,68,75,80);
+%     mu5 = tri_member(q1,75,84,85);
+%     mu6 = tri_member(q1,80,85,90);
+%     mu7 = trape_down_member(q1,85,100);
+% 
+%     mu8 = tri_member(q2,-20,-20,0);
+%     mu9 = tri_member(q2,-5,0,5);
+%     mu10 = tri_member(q2,0,20,20);
+
+    mu1 = trape_up_member(q1,50,65);
+    mu2 = tri_member(q1,64,68,72);
+    mu3 = tri_member(q1,65,71,75);
+    mu4 = tri_member(q1,68,75,80);
+    mu5 = tri_member(q1,75,84,85);
+    mu6 = tri_member(q1,80,85,90);
+    mu7 = trape_down_member(q1,85,100);
+
+    mu8 = tri_member(q2,-20,-20,0);
+    mu9 = tri_member(q2,-5,0,5);
+    mu10 = tri_member(q2,0,20,20);
+
+
 
 end
