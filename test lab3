@@ -17,116 +17,123 @@ G_pat3(1) = 70;
 X_pat3(1) = 0;
 I_pat3(1) = 7;
 
-G_pat1_d = zeros(1,fin/h+1);
-U1 = zeros(1,fin/h+1);
-G_pat2_d = zeros(1,fin/h+1);
-U2 = zeros(1,fin/h+1);
-G_pat3_d = zeros(1,fin/h+1);
-U3 = zeros(1,fin/h+1);
+% N = -0.5;
+% Z = -0.4;
+% PS = 0.2;
+% PM = 0.5;
+% PB = 0.8;
+% PL = 1;
+
+NB = -4;
+NS = -2;
+Z = 0;
+PS = 0.1;
+PM = 0.5;
+PB = 0.7;
+PL = 2;
+
+
+e1_d(1) = 0;
+e2_d(1) = 0;
+e3_d(1) = 0;
 
 
 x = fin/h;
-%..........glucose concentration-input1...........
-x1 = 0:0.02:400;
-NB = trapezoid_up_wave(x1,50,70);
-NS = triangle_wave(x1,50,70,75);
-NOM = triangle_wave(x1,70,75,80);
-PS = triangle_wave(x1,75,80,150);
-PM = triangle_wave(x1,75,150,225);
-PB = triangle_wave(x1,150,225,300);
-PL = trapezoid_down_wave(x1,225,300);
-
-% figure('name','glucose concentration-input1');
-% plot(x1,NB,"b",x1,NS,"g",x1,NOM,"r",x1,PS,"c",x1,PL,"k");
+% %..........glucose concentration-input1...........
+% x1 = -8:0.02:6;
+% NL = trapezoid_up_wave(x1,-6,-5);
+% NB = triangle_wave(x1,-6,-2,0);
+% NM = triangle_wave(x1,-5,-1.5,-1);
+% NS = triangle_wave(x1,-2,-1,0);
+% NOM = triangle_wave(x1,-1,0,2);
+% P = trapezoid_down_wave(x1,0,3);
+% 
+% figure('name','error-input1');
+% plot(x1,NL,"b",x1,NB,"g",x1,NM,"r",x1,NS,"c",x1,NOM,"k");
 % hold on;
-% plot(x1,PM,"Color","#E020F0")
-% hold on;
-% plot(x1,PB,"Color","#E09010")
-% xlim([40,400])
-% title('glucose concentration-input1')
-% xlabel("glucose concentration(mg/dl)")
-
-%..........glucose deviation-input2...........
-x2 = -20:0.002:20;
-neg = triangle_wave(x2,-20,-20,0);
-zero = triangle_wave(x2,-1,0,1);
-pos = triangle_wave(x2,0,20,20);
-
+% plot(x1,P,"Color","#E020F0")
+% legend({'NL','NB','NM','NS','NOM','P'})
+% 
+% title('error-input1')
+% xlabel("error glucose concentration(mg/dl)")
+% 
+% %..........glucose deviation-input2...........
+% x2 = -1:0.002:1;
+% neg = trapezoid_up_wave(x2,-0.1,0);
+% zero = triangle_wave(x2,-0.1,0,0.1);
+% pos = trapezoid_down_wave(x2,0,0.1);
+% legend({'neg','zero','pos'})
 % figure('name','glucose deviation-input2');
 % plot(x2,neg,"b",x2,zero,"g",x2,pos,"r");
-% title('glucose deviation-input2')
-% xlabel("glucose deviation(mg/dl)")
-
-%..........insulin infusion rate-output...........
-y = -1:0.0005:9;
-NB_o = triangle_wave(y,-1,-0.5,-0.2);
-NS_o = triangle_wave(y,-0.4,-0.2,0.2);
-Z_o = triangle_wave(y,-0.2,0.2,0.5);
-PS_o = triangle_wave(y,0.2,0.5,2);
-PM_o = triangle_wave(y,0.6,2,4);
-PB_o = triangle_wave(y,2,4,6);
-PL_o = triangle_wave(y,4,6,8);
-
+% title('error deviation-input2')
+% xlabel("error glucose deviation(mg/dl)")
+% xlim([-0.2,0.2])
+% 
+% %..........insulin infusion rate-output...........
+% y = -3:0.0005:3;
+% N_o = triangle_wave(y,-0.6,-0.5,-0.4);
+% Z_o = triangle_wave(y,-0.4,-0.3,-0.2);
+% PS_o = triangle_wave(y,0.05,0.15,0.25);
+% PM_o = triangle_wave(y,0.1,0.2,0.3);
+% PB_o = triangle_wave(y,0.2,0.3,0.4);
+% PL_o = triangle_wave(y,0.4,0.5,0.6);
+% 
 % figure('name','insulin infusion rate-output');
-% plot(y,NB_o,"b",y,NS_o,"g",y,Z_o,"r",y,PS_o,"c",y,PL_o,"k");
+% plot(y,N_o,"b",y,Z_o,"r",y,PS_o,"c",y,PL_o,"k");
 % hold on;
 % plot(y,PM_o,"Color","#E020F0")
 % hold on;
 % plot(y,PB_o,"Color","#E09010")
+% legend({'N','Z','PS','PL','PM','PB'})
 % title("insulin infusion rate-output")
 % xlabel("insulin infusion rate(microU/min/mg)")
+% xlim([-1,1])
 
 %.............patient3................
 num = 1;
 for i = tn
-    G_pat1_d(num) = G_p1(i,G_pat1(num),X_pat1(num),I_pat1(num));
-    G_pat2_d(num) = G_p2(i,G_pat2(num),X_pat2(num),I_pat2(num));
-    G_pat3_d(num) = G_p3(i,G_pat3(num),X_pat3(num),I_pat3(num));
+    e1(num) = 70 - G_pat1(num);
+    if num ~= 1
+        e1_d(num) = (e1(num)-e1(num-1))/0.05;
+    end
 
-    q1 = G_pat1(num);
-    q2 = G_pat1_d(num);
+    q1 = e1(num);
+    q2 = e1_d(num);
 
     [mu1,mu2,mu3,mu4,mu5,mu6,mu7,mu8,mu9,mu10] = MU(q1,q2);
         
-    w1 = min(mu7,mu8);  %PL
-    w2 = min(mu7,mu9); %PL
-    w3 = min(mu7,mu10);  %PL
-    w4 = min(mu6,mu8);  %PB
-    w5 = min(mu6,mu9); %PB
-    w6 = min(mu6,mu10);  %PL
-    w7 = min(mu5,mu8);  %PM
-    w8 = min(mu5,mu9); %PM
-    w9 = min(mu5,mu10);  %PM
-    w10 = min(mu4,mu8); %PS
-    w11 = min(mu4,mu9);%PS
-    w12 = min(mu4,mu10); %PS
-    w13 = min(mu3,mu8);%Z
-    w14 = min(mu3,mu9);%Z
-    w15 = min(mu3,mu10); %Z
-    w16 = min(mu2,mu8);  %NB
-    w17 = min(mu2,mu9); %NS
-    w18 = min(mu2,mu10);  %NS
-    w19 = min(mu1,mu8);  %NB
-    w20 = min(mu1,mu9); %NB
-    w21 = min(mu1,mu10);  %NB
-
-%     NB_o = -0.5;
-%     NS_o = -0.2;
-%     Z_o = 0.1;
-%     PS_o = 0.5;
-%     PM_o = 2;
-%     PB_o = 4;
-%     PL_o = 6;
-    NB_o = -1;
-    NS_o = -0.2;
-    Z_o = 0;
-    PS_o = 0.5;
-    PM_o = 1;
-    PB_o = 3;
-    PL_o = 4;
+    w1 = min(mu1,mu8); %pl
+    w2 = min(mu1,mu9); %pl
+    w3 = min(mu1,mu10); %pl
+    w4 = min(mu2,mu8); %pl
+    w5 = min(mu2,mu9); %pb
+    w6 = min(mu2,mu10); %pb
+    w7 = min(mu3,mu8); %pm
+    w8 = min(mu3,mu9);  %pm
+    w9 = min(mu3,mu10);%pm
+    w10 = min(mu4,mu8); %ps
+    w11 = min(mu4,mu9);%ps
+    w12 = min(mu4,mu10);%ps
+    w13 = min(mu5,mu8); %z
+    w14 = min(mu5,mu9);%z
+    w15 = min(mu5,mu10);%z
+    w16 = min(mu6,mu8); %ns
+    w17 = min(mu6,mu9);%ns
+    w18 = min(mu6,mu10);%nb
+    w19 = min(mu7,mu8); %nb
+    w20 = min(mu7,mu9);%nb
+    w21 = min(mu7,mu10);%nb
+ 
+    NB_o = NB;
+    NS_o = NS;
+    Z_o = Z;
+    PS_o = PS;
+    PM_o = PM;
+    PB_o = PB;
+    PL_o = PL;
     
-    nn = (w1*PL_o+w2*PL_o+w3*PL_o+w4*PB_o+w5*PB_o+w6*PL_o+w7*PM_o+w8*PM_o+w9*PM_o+w10*PS_o ...
-        +w11*PS_o+w12*PS_o+w13*Z_o+w14*Z_o+w15*Z_o+w16*NB_o+w17*NS_o+w18*NS_o+w19*NB_o+w20*NB_o+w21*NB_o)...
+    nn = (w1*PL_o+w2*PL_o+w3*PL_o+w4*PB_o+w5*PB_o+w6*PB_o+w7*PM_o+w8*PM_o+w9*PM_o+w10*PS_o ...
+        +w11*PS_o+w12*PS_o+w13*Z_o+w14*Z_o+w15*Z_o+w16*NS_o+w17*NS_o+w18*NB_o+w19*NB_o+w20*NB_o+w21*NB_o)...
         /(w1+w2+w3+w4+w5+w6+w7+w8+w9+w10+w11+w12+w13+w14+w15+w16+w17+w18+w19+w20+w21);
 
     U1(num) = sat(nn);
@@ -152,37 +159,49 @@ for i = tn
         X_pat1(num+1) = X_pat1(num) + h*(l1+2*l2+2*l3+l4)/6;
         I_pat1(num+1) = I_pat1(num) + h*(j1+2*j2+2*j3+j4)/6;
     end
+%.......................patient2................................
+    e2(num) = 70 - G_pat2(num);
+    if num ~= 1
+        e2_d(num) = (e2(num)-e2(num-1))/0.05;
+    end
 
-    q1 = G_pat2(num);
-    q2 = G_pat2_d(num);
+    q1 = e2(num);
+    q2 = e2_d(num);
 
     [mu1,mu2,mu3,mu4,mu5,mu6,mu7,mu8,mu9,mu10] = MU(q1,q2);
         
-    w1 = min(mu7,mu8);  %PL
-    w2 = min(mu7,mu9); %PL
-    w3 = min(mu7,mu10);  %PL
-    w4 = min(mu6,mu8);  %PB
-    w5 = min(mu6,mu9); %PB
-    w6 = min(mu6,mu10);  %PL
-    w7 = min(mu5,mu8);  %PM
-    w8 = min(mu5,mu9); %PM
-    w9 = min(mu5,mu10);  %PM
-    w10 = min(mu4,mu8); %PS
-    w11 = min(mu4,mu9);%PS
-    w12 = min(mu4,mu10); %PS
-    w13 = min(mu3,mu8);%Z
-    w14 = min(mu3,mu9);%Z
-    w15 = min(mu3,mu10); %Z
-    w16 = min(mu2,mu8);  %NB
-    w17 = min(mu2,mu9); %NS
-    w18 = min(mu2,mu10);  %NS
-    w19 = min(mu1,mu8);  %NB
-    w20 = min(mu1,mu9); %NB
-    w21 = min(mu1,mu10);  %NB
-
+    w1 = min(mu1,mu8); %pl
+    w2 = min(mu1,mu9); %pl
+    w3 = min(mu1,mu10); %pl
+    w4 = min(mu2,mu8); %pl
+    w5 = min(mu2,mu9); %pb
+    w6 = min(mu2,mu10); %pb
+    w7 = min(mu3,mu8); %pm
+    w8 = min(mu3,mu9);  %pm
+    w9 = min(mu3,mu10);%pm
+    w10 = min(mu4,mu8); %ps
+    w11 = min(mu4,mu9);%ps
+    w12 = min(mu4,mu10);%ps
+    w13 = min(mu5,mu8); %z
+    w14 = min(mu5,mu9);%z
+    w15 = min(mu5,mu10);%z
+    w16 = min(mu6,mu8); %ns
+    w17 = min(mu6,mu9);%ns
+    w18 = min(mu6,mu10);%nb
+    w19 = min(mu7,mu8); %nb
+    w20 = min(mu7,mu9);%nb
+    w21 = min(mu7,mu10);%nb
+ 
+    NB_o = NB;
+    NS_o = NS;
+    Z_o = Z;
+    PS_o = PS;
+    PM_o = PM;
+    PB_o = PB;
+    PL_o = PL;
     
-    nn = (w1*PL_o+w2*PL_o+w3*PL_o+w4*PB_o+w5*PB_o+w6*PL_o+w7*PM_o+w8*PM_o+w9*PM_o+w10*PS_o ...
-        +w11*PS_o+w12*PS_o+w13*Z_o+w14*Z_o+w15*Z_o+w16*NB_o+w17*NS_o+w18*NS_o+w19*NB_o+w20*NB_o+w21*NB_o)...
+    nn = (w1*PL_o+w2*PL_o+w3*PL_o+w4*PB_o+w5*PB_o+w6*PB_o+w7*PM_o+w8*PM_o+w9*PM_o+w10*PS_o ...
+        +w11*PS_o+w12*PS_o+w13*Z_o+w14*Z_o+w15*Z_o+w16*NS_o+w17*NS_o+w18*NB_o+w19*NB_o+w20*NB_o+w21*NB_o)...
         /(w1+w2+w3+w4+w5+w6+w7+w8+w9+w10+w11+w12+w13+w14+w15+w16+w17+w18+w19+w20+w21);
 
     U2(num) = sat(nn);
@@ -203,42 +222,57 @@ for i = tn
     l4 = X_p2(i + h,G_pat2(num) + h*k3,X_pat2(num) + h*l3,I_pat2(num) + h*j3);
     j4 = I_p2(i + h,G_pat2(num) + h*k3,X_pat2(num) + h*l3,I_pat2(num) + h*j3,U2(num));
     
+
+
     if num < x +1
         G_pat2(num+1) = G_pat2(num) + h*(k1+2*k2+2*k3+k4)/6;
         X_pat2(num+1) = X_pat2(num) + h*(l1+2*l2+2*l3+l4)/6;
         I_pat2(num+1) = I_pat2(num) + h*(j1+2*j2+2*j3+j4)/6;
     end
 
-    q1 = G_pat3(num);
-    q2 = G_pat3_d(num);
+    %.......................patient3................................
+    e3(num) = 70 - G_pat3(num);
+    if num ~= 1
+        e3_d(num) = (e3(num)-e3(num-1))/0.05;
+    end
+
+    q1 = e3(num);
+    q2 = e3_d(num);
 
     [mu1,mu2,mu3,mu4,mu5,mu6,mu7,mu8,mu9,mu10] = MU(q1,q2);
         
-    w1 = min(mu7,mu8);  %PL
-    w2 = min(mu7,mu9); %PL
-    w3 = min(mu7,mu10);  %PL
-    w4 = min(mu6,mu8);  %PB
-    w5 = min(mu6,mu9); %PB
-    w6 = min(mu6,mu10);  %PL
-    w7 = min(mu5,mu8);  %PM
-    w8 = min(mu5,mu9); %PM
-    w9 = min(mu5,mu10);  %PM
-    w10 = min(mu4,mu8); %PS
-    w11 = min(mu4,mu9);%PS
-    w12 = min(mu4,mu10); %PS
-    w13 = min(mu3,mu8);%Z
-    w14 = min(mu3,mu9);%Z
-    w15 = min(mu3,mu10); %Z
-    w16 = min(mu2,mu8);  %NB
-    w17 = min(mu2,mu9); %NS
-    w18 = min(mu2,mu10);  %NS
-    w19 = min(mu1,mu8);  %NB
-    w20 = min(mu1,mu9); %NB
-    w21 = min(mu1,mu10);  %NB
-
+    w1 = min(mu1,mu8); %pl
+    w2 = min(mu1,mu9); %pl
+    w3 = min(mu1,mu10); %pl
+    w4 = min(mu2,mu8); %pl
+    w5 = min(mu2,mu9); %pb
+    w6 = min(mu2,mu10); %pb
+    w7 = min(mu3,mu8); %pm
+    w8 = min(mu3,mu9);  %pm
+    w9 = min(mu3,mu10);%pm
+    w10 = min(mu4,mu8); %ps
+    w11 = min(mu4,mu9);%ps
+    w12 = min(mu4,mu10);%ps
+    w13 = min(mu5,mu8); %z
+    w14 = min(mu5,mu9);%z
+    w15 = min(mu5,mu10);%z
+    w16 = min(mu6,mu8); %ns
+    w17 = min(mu6,mu9);%ns
+    w18 = min(mu6,mu10);%nb
+    w19 = min(mu7,mu8); %nb
+    w20 = min(mu7,mu9);%nb
+    w21 = min(mu7,mu10);%nb
+ 
+    NB_o = NB;
+    NS_o = NS;
+    Z_o = Z;
+    PS_o = PS;
+    PM_o = PM;
+    PB_o = PB;
+    PL_o = PL;
     
-    nn = (w1*PL_o+w2*PL_o+w3*PL_o+w4*PB_o+w5*PB_o+w6*PL_o+w7*PM_o+w8*PM_o+w9*PM_o+w10*PS_o ...
-        +w11*PS_o+w12*PS_o+w13*Z_o+w14*Z_o+w15*Z_o+w16*NB_o+w17*NS_o+w18*NS_o+w19*NB_o+w20*NB_o+w21*NB_o)...
+    nn = (w1*PL_o+w2*PL_o+w3*PL_o+w4*PB_o+w5*PB_o+w6*PB_o+w7*PM_o+w8*PM_o+w9*PM_o+w10*PS_o ...
+        +w11*PS_o+w12*PS_o+w13*Z_o+w14*Z_o+w15*Z_o+w16*NS_o+w17*NS_o+w18*NB_o+w19*NB_o+w20*NB_o+w21*NB_o)...
         /(w1+w2+w3+w4+w5+w6+w7+w8+w9+w10+w11+w12+w13+w14+w15+w16+w17+w18+w19+w20+w21);
 
     U3(num) = sat(nn);
@@ -266,25 +300,32 @@ for i = tn
     end
        num = num +1;
 end
+% figure(5)
+% hold on
+% plot(tn,e1)
+% plot(tn,e_d)
+
 
 figure(6)
 subplot(3,1,3)
 hold on
-plot(tn,U1,'b')
-plot(tn,U2,'--r')
-plot(tn,U3,'--g')
+plot(tn,e1_d,'b')
+plot(tn,e2_d,'--r')
+plot(tn,e3_d,'--g')
 yline(0)
-title('u(t)')
+title('e_d')
+legend({'patient1','patient2','patient3'},"Location","northeast")
 ylabel('(MicroU)/mg/min2')
 xlabel('time(min)')
 
 subplot(3,1,2)
 hold on
-plot(tn,I_pat1,'b')
-plot(tn,I_pat2,'--r')
-plot(tn,I_pat3,'--g')
+plot(tn,e1,'b')
+plot(tn,e2,'--r')
+plot(tn,e3,'--g')
 yline(7)
-title('insulin')
+legend({'patient1','patient2','patient3'},"Location","northeast")
+title('e')
 xlabel('time(min)')
 ylabel('(MicroU/ml)')
 
@@ -294,6 +335,7 @@ plot(tn,G_pat1,'b')
 plot(tn,G_pat2,'--r')
 plot(tn,G_pat3,'--g')
 yline(70)
+legend({'patient1','patient2','patient3'},"Location","northeast")
 title('G(t)')
 ylabel('(mg/dl)')
 xlabel('time(min)')
@@ -301,7 +343,7 @@ xlabel('time(min)')
 function g = G_n(t,p1,Gb,G,X,I)
     w = t-500;
     w(w<0) = inf;
-    g = -p1*(G-Gb)-X*G + 1.7*exp(-0.03*t);
+    g = -p1*(G-Gb)-X*G + 0.2*exp(-0.02*t)+ 0.2*exp(-0.02*w);
 end
   
 function x = X_n(t,p2,p3,Ib,G,X,I)
@@ -441,10 +483,8 @@ function mem2 = trape_up_member(i,start,fin)
 end
 
 function y=sat(x);
-% sat is the saturation function with unit limits and unit slope.
-if x>1
-    y=1;
-elseif x<0 
+
+if x<0 
     y=0;
 else 
     y=x;
@@ -452,28 +492,16 @@ end
 end
 
 function [mu1,mu2,mu3,mu4,mu5,mu6,mu7,mu8,mu9,mu10] = MU(q1,q2)
-%     mu1 = trape_up_member(q1,50,70);
-%     mu2 = tri_member(q1,50,70,75);
-%     mu3 = tri_member(q1,70,75,80);
-%     mu4 = tri_member(q1,75,80,150);
-%     mu5 = tri_member(q1,75,150,225);
-%     mu6 = tri_member(q1,150,225,300);
-%     mu7 = trape_down_member(q1,225,300);
-% 
-%     mu8 = tri_member(q2,-20,-20,0);
-%     mu9 = tri_member(q2,-2,0,2);
-%     mu10 = tri_member(q2,0,20,20);
+    mu1 = trape_up_member(q1,-5,-4); %NL
+    mu2 = tri_member(q1,-4,-3,-2);   %NB
+    mu3 = tri_member(q1,-3,-2,-1);     %NM
+    mu4 = tri_member(q1,-1,-0.5,-0.1);      %NS
+    mu5 = tri_member(q1,-0.1,0,0.1);       %z
+    mu6 = tri_member(q1,0.1,0.5,1);        %ps
+    mu7 = trape_down_member(q1,1,2);   %pb
 
-    mu1 = trape_up_member(q1,40,50);
-    mu2 = tri_member(q1,50,55,90);
-    mu3 = tri_member(q1,70,75,80);
-    mu4 = tri_member(q1,60,80,100);
-    mu5 = tri_member(q1,75,150,225);
-    mu6 = tri_member(q1,200,250,300);
-    mu7 = trape_down_member(q1,225,400);
-
-    mu8 = tri_member(q2,-20,-20,0);
-    mu9 = tri_member(q2,-2,0,2);
-    mu10 = tri_member(q2,0,20,20);
+    mu8 = trape_up_member(q2,-0.2,-0.1);
+    mu9 = tri_member(q2,-0.1,0,0.05);
+    mu10 = trape_down_member(q2,0,0.05);
 
 end
