@@ -1,0 +1,653 @@
+clc;
+close all;
+clear all;
+%..........
+% 由於先天型糖尿病患者無法自行產生胰島素導致在食用餐點完後無法讓血糖回歸正常。
+% 因此希望能夠透過控制系統達到血糖下降之效果
+%..........
+
+%...................
+%.......data........
+%...................
+h = 0.05;
+fin = 1500;
+tn = 0:h:fin
+x = fin/h;
+
+%初始值設定
+G_pat1(1) = 70;
+X_pat1(1) = 0;
+I_pat1(1) = 7;
+G_pat2(1) = 70;
+X_pat2(1) = 0;
+I_pat2(1) = 7;
+G_pat3(1) = 70;
+X_pat3(1) = 0;
+I_pat3(1) = 7;
+G_pat1I(1) = 70;
+e1_d(1) = 0;
+e2_d(1) = 0;
+e3_d(1) = 0;
+
+%FLC 權重設定(一般跟IC一樣)
+q = 70;
+w_p1(1) = q;
+w_p2(1) = q;
+w_p3(1) = q;
+w_p4(1) = q;
+w_p5(1) = q;
+w_p6(1) = q;
+w_p7(1) = q;
+w_p8(1) = q;
+w_p9(1) = q;
+
+%FLC學習率設定
+ETA = 1;
+
+%FLC mf 繪製區(非必要)
+%..........glucose concentration-input1...........
+% x1 = -11:0.02:3;
+% NL = trapezoid_up_wave(x1,-10,-8);
+% NB = triangle_wave(x1,-9,-7,-6);
+% NM = triangle_wave(x1,-7,-5,-4);
+% NS = triangle_wave(x1,-5,-3,-1);
+% NOM = triangle_wave(x1,-2,0,0.1);
+% PS = triangle_wave(x1,-0.5,1,1.5);
+% PB = trapezoid_down_wave(x1,1,2);
+% 
+% figure('name','error-input1');
+% plot(x1,NL,x1,NB,x1,NM,x1,NS,x1,NOM,x1,PS,x1,PB);
+% 
+% legend({'NL','NB','NM','NS','NOM','PS',"PB"})
+% 
+% title('error-input1')
+% xlabel("error glucose concentration(mg/dl)")
+% xlim([-11,3])
+% 
+% %..........glucose deviation-input2...........
+% x2 = -0.3:0.002:0.3;
+% neg = trapezoid_up_wave(x2,-0.2,0);
+% zero = triangle_wave(x2,-0.1,0,0.05);
+% pos = trapezoid_down_wave(x2,0,0.1);
+% 
+% figure('name','glucose deviation-input2');
+% plot(x2,neg,"b",x2,zero,"g",x2,pos,"r");
+% title('error deviation-input2')
+% xlabel("error glucose deviation(mg/dl)")
+% xlim([-0.3,0.3])
+% legend({'neg','zero','pos'})
+% 
+% figure('name','insulin infusion rate-output');
+% xline(-2,"r");
+% xline(-1,"g");
+% xline(0,"b");
+% xline(0.5,"k");
+% xline(1,"c");
+% xline(3,"m");
+% xline(5,"y");
+% legend({'NB','NS','Z','PS','PM','PB',"PL"})
+% 
+% title("insulin infusion rate-output")
+% xlabel("insulin infusion rate(microU/min/mg)")
+% xlim([-3,6])
+
+%FNNI mf output數值設定
+NB = -2;
+NS = -1;
+Z = -0;
+PS = 0.5;
+PM = 1;
+PB = 3;
+PL = 5;
+
+%FNNI mf input1數值設定 - u(t)
+u_r = -2:0.0001:4;
+
+mf1_1 = 1./(1+exp(6*(u_r-0.2)));
+mf1_2 = exp(-((u_r-1)/1).^2);
+mf1_3 = 1./(1+exp(-6*(u_r-1.8)));
+
+figure(2)
+plot(u_r,mf1_1,u_r,mf1_2,u_r,mf1_3);
+title('u(k)-gaussion membership functions')
+xlabel('x')
+legend({'mf1_1','mf1_2','mf1_3'},'Location','northeast')
+hold on;
+
+%FNNI mf input2數值設定 - G(t-1)
+g_r = 40:0.0125:100;
+
+mf2_1 = 1./(1+exp(0.5*(g_r-60)));
+mf2_2 = exp(-((g_r-70)/10).^2);
+mf2_3 = 1./(1+exp(-0.5*(g_r-80)));
+
+figure(3)
+plot(g_r,mf2_1,g_r,mf2_2,g_r,mf2_3);
+title('g(k-1)-gaussion membership functions')
+xlabel('g(k-1)')
+legend({'mf2_1','mf2_2','mf2_3'},'Location','southwest')
+hold on;
+
+%...................
+%.......main........
+%...................
+
+num = 1;
+for i = tn
+    %.............patient1 FLC部分................
+    e1(num) = 70 - G_pat1(num); %計算當前誤差
+    if num ~= 1
+        e1_d(num) = (e1(num)-e1(num-1))/0.05; %計算當前誤差微分
+    end
+
+    q1 = e1(num);
+    q2 = e1_d(num);
+
+    %第二層-MF數值
+    [mu1,mu2,mu3,mu4,mu5,mu6,mu7,mu8,mu9,mu10] = MU(q1,q2); %將MF各個值計算出來
+    
+    %第三層-各個rule數值
+    wp1(num) = min(mu1,mu8); %pl 
+    wp2(num) = min(mu1,mu9); %pl
+    wp3(num) = min(mu1,mu10); %pl
+    wp4(num) = min(mu2,mu8); %pl
+    wp5(num) = min(mu2,mu9); %pb
+    wp6(num) = min(mu2,mu10); %pb
+    wp7(num) = min(mu3,mu8); %pm
+    wp8(num) = min(mu3,mu9);  %pm
+    wp9(num) = min(mu3,mu10);%pm
+    wp10(num) = min(mu4,mu8); %ps
+    wp11(num) = min(mu4,mu9);%ps
+    wp12(num) = min(mu4,mu10);%ps
+    wp13(num) = min(mu5,mu8); %z
+    wp14(num) = min(mu5,mu9);%z
+    wp15(num) = min(mu5,mu10);%z
+    wp16(num) = min(mu6,mu8); %ns
+    wp17(num) = min(mu6,mu9);%ns
+    wp18(num) = min(mu6,mu10);%nb
+    wp19(num) = min(mu7,mu8); %nb
+    wp20(num) = min(mu7,mu9);%nb
+    wp21(num) = min(mu7,mu10);%nb
+ 
+    NB_o = NB;
+    NS_o = NS;
+    Z_o = Z;
+    PS_o = PS;
+    PM_o = PM;
+    PB_o = PB;
+    PL_o = PL;
+
+    %第四層-計算output數值
+    nn = (wp1(num)*PL_o+wp2(num)*PL_o+wp3(num)*PL_o+wp4(num)*PL_o+wp5(num)*PB_o+wp6(num)*PB_o+wp7(num)*PM_o+wp8(num)*PM_o+wp9(num)*PM_o+wp10(num)*PS_o ...
+        +wp11(num)*PS_o+wp12(num)*PS_o+wp13(num)*Z_o+wp14(num)*Z_o+wp15(num)*Z_o+wp16(num)*NS_o+wp17(num)*NS_o+wp18(num)*NB_o+wp19(num)*NB_o+wp20(num)*NB_o+wp21(num)*NB_o)...
+        /(wp1(num)+wp2(num)+wp3(num)+wp4(num)+wp5(num)+wp6(num)+wp7(num)+wp8(num)+wp9(num)+wp10(num)+wp11(num)+wp12(num)+wp13(num)+wp14(num)+wp15(num)+wp16(num)+wp17(num)+wp18(num)+wp19(num)+wp20(num)+wp21(num));
+    
+    U1(num) = sat(nn); %因胰島素只能注射因此只能是正的
+    
+    %利用runge-kutta求出下一時刻數值
+    k1 = G_p1(i,G_pat1(num),X_pat1(num),I_pat1(num));
+    l1 = X_p1(i,G_pat1(num),X_pat1(num),I_pat1(num));
+    j1 = I_p1(i,G_pat1(num),X_pat1(num),I_pat1(num),U1(num));
+
+    k2 = G_p1(i + h/2,G_pat1(num) + h*k1/2,X_pat1(num) + h*l1/2,I_pat1(num) + h*j1/2);
+    l2 = X_p1(i + h/2,G_pat1(num) + h*k1/2,X_pat1(num) + h*l1/2,I_pat1(num) + h*j1/2);
+    j2 = I_p1(i + h/2,G_pat1(num) + h*k1/2,X_pat1(num) + h*l1/2,I_pat1(num) + h*j1/2,U1(num));
+
+    k3 = G_p1(i + h/2,G_pat1(num) + h*k2/2,X_pat1(num) + h*l2/2,I_pat1(num) + h*j2/2);
+    l3 = X_p1(i + h/2,G_pat1(num) + h*k2/2,X_pat1(num) + h*l2/2,I_pat1(num) + h*j2/2);
+    j3 = I_p1(i + h/2,G_pat1(num) + h*k2/2,X_pat1(num) + h*l2/2,I_pat1(num) + h*j2/2,U1(num));
+    
+    k4 = G_p1(i + h,G_pat1(num) + h*k3,X_pat1(num) + h*l3,I_pat1(num) + h*j3);
+    l4 = X_p1(i + h,G_pat1(num) + h*k3,X_pat1(num) + h*l3,I_pat1(num) + h*j3);
+    j4 = I_p1(i + h,G_pat1(num) + h*k3,X_pat1(num) + h*l3,I_pat1(num) + h*j3,U1(num));
+    
+    if num < x +1
+        G_pat1(num+1) = G_pat1(num) + h*(k1+2*k2+2*k3+k4)/6;
+        X_pat1(num+1) = X_pat1(num) + h*(l1+2*l2+2*l3+l4)/6;
+        I_pat1(num+1) = I_pat1(num) + h*(j1+2*j2+2*j3+j4)/6;
+    end
+    %.............patient1 FNNI部分................
+
+    %第二層-MF數值-u(t)
+    mf1_1 = 1./(1+exp(6*(U1(num)-0.2)));
+    mf1_2 = exp(-((U1(num)-1)/1).^2);
+    mf1_3 = 1./(1+exp(-6*(U1(num)-1.8)));
+
+    %第二層-MF數值-G(t-1)
+    mf2_1 = 1./(1+exp(0.5*(G_pat1(num)-60)));
+    mf2_2 = exp(-((G_pat1(num)-70)/10).^2);
+    mf2_3 = 1./(1+exp(-0.5*(G_pat1(num)-80)));
+
+    %第三層-各MF相乘3*3共9個
+    o3_1 = mf1_1*mf2_1;
+    o3_2 = mf1_1*mf2_2;
+    o3_3 = mf1_1*mf2_3;
+    o3_4 = mf1_2*mf2_1;
+    o3_5 = mf1_2*mf2_2;
+    o3_6 = mf1_2*mf2_3;
+    o3_7 = mf1_3*mf2_1;
+    o3_8 = mf1_3*mf2_2;
+    o3_9 = mf1_3*mf2_3;
+
+    o_all = (o3_1 + o3_2 + o3_3 + o3_4 + o3_5 + o3_6 + o3_7 + o3_8 + o3_9);
+   
+    %第四層-求出預測血糖濃度
+    G_pat1I(num) = (w_p1(num)*o3_1 + w_p2(num)*o3_2+ w_p3(num)*o3_3 + w_p4(num)*o3_4 ...
+        + w_p5(num)*o3_5 + w_p6(num)*o3_6 + w_p7(num)*o3_7 + w_p8(num)*o3_8 + w_p9(num)*o3_9)...
+        /o_all;
+
+    if num <= x
+        %求出下一時刻權重
+        w_p1(num+1) = w_p1(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_1/o_all;
+        w_p2(num+1) = w_p2(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_2/o_all;
+        w_p3(num+1) = w_p3(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_3/o_all;
+        w_p4(num+1) = w_p4(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_4/o_all;
+        w_p5(num+1) = w_p5(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_5/o_all;
+        w_p6(num+1) = w_p6(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_6/o_all;
+        w_p7(num+1) = w_p7(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_7/o_all;
+        w_p8(num+1) = w_p8(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_8/o_all;
+        w_p9(num+1) = w_p9(num) + ETA * (G_pat1(num)-G_pat1I(num)) * o3_9/o_all;
+    end
+%.......................patient2................................
+    e2(num) = 70 - G_pat2(num);
+    if num ~= 1
+        e2_d(num) = (e2(num)-e2(num-1))/0.05;
+    end
+
+    q1 = e2(num);
+    q2 = e2_d(num);
+
+    [mu1,mu2,mu3,mu4,mu5,mu6,mu7,mu8,mu9,mu10] = MU(q1,q2);
+        
+    wpp1(num) = min(mu1,mu8); %pl
+    wpp2(num) = min(mu1,mu9); %pl
+    wpp3(num) = min(mu1,mu10); %pl
+    wpp4(num) = min(mu2,mu8); %pl
+    wpp5(num) = min(mu2,mu9); %pb
+    wpp6(num) = min(mu2,mu10); %pb
+    wpp7(num) = min(mu3,mu8); %pm
+    wpp8(num) = min(mu3,mu9);  %pm
+    wpp9(num) = min(mu3,mu10);%pm
+    wpp10(num) = min(mu4,mu8); %ps
+    wpp11(num) = min(mu4,mu9);%ps
+    wpp12(num) = min(mu4,mu10);%ps
+    wpp13(num) = min(mu5,mu8); %z
+    wpp14(num) = min(mu5,mu9);%z
+    wpp15(num) = min(mu5,mu10);%z
+    wpp16(num) = min(mu6,mu8); %ns
+    wpp17(num) = min(mu6,mu9);%ns
+    wpp18(num) = min(mu6,mu10);%nb
+    wpp19(num) = min(mu7,mu8); %nb
+    wpp20(num) = min(mu7,mu9);%nb
+    wpp21(num) = min(mu7,mu10);%nb
+ 
+    NB_o = NB;
+    NS_o = NS;
+    Z_o = Z;
+    PS_o = PS;
+    PM_o = PM;
+    PB_o = PB;
+    PL_o = PL;
+    
+    nn = (wpp1(num)*PL_o+wpp2(num)*PL_o+wpp3(num)*PL_o+wpp4(num)*PL_o+wpp5(num)*PB_o+wpp6(num)*PB_o+wpp7(num)*PM_o+wpp8(num)*PM_o+wpp9(num)*PM_o+wpp10(num)*PS_o ...
+        +wpp11(num)*PS_o+wpp12(num)*PS_o+wpp13(num)*Z_o+wpp14(num)*Z_o+wpp15(num)*Z_o+wpp16(num)*NS_o+wpp17(num)*NS_o+wpp18(num)*NB_o+wpp19(num)*NB_o+wpp20(num)*NB_o+wpp21(num)*NB_o)...
+        /(wpp1(num)+wpp2(num)+wpp3(num)+wpp4(num)+wpp5(num)+wpp6(num)+wpp7(num)+wpp8(num)+wpp9(num)+wpp10(num)+wpp11(num)+wpp12(num)+wpp13(num)+wpp14(num)+wpp15(num)+wpp16(num)+wpp17(num)+wpp18(num)+wpp19(num)+wpp20(num)+wpp21(num));
+
+    U2(num) = sat(nn);
+
+    k1 = G_p2(i,G_pat2(num),X_pat2(num),I_pat2(num));
+    l1 = X_p2(i,G_pat2(num),X_pat2(num),I_pat2(num));
+    j1 = I_p2(i,G_pat2(num),X_pat2(num),I_pat2(num),U2(num));
+
+    k2 = G_p2(i + h/2,G_pat2(num) + h*k1/2,X_pat2(num) + h*l1/2,I_pat2(num) + h*j1/2);
+    l2 = X_p2(i + h/2,G_pat2(num) + h*k1/2,X_pat2(num) + h*l1/2,I_pat2(num) + h*j1/2);
+    j2 = I_p2(i + h/2,G_pat2(num) + h*k1/2,X_pat2(num) + h*l1/2,I_pat2(num) + h*j1/2,U2(num));
+
+    k3 = G_p2(i + h/2,G_pat2(num) + h*k2/2,X_pat2(num) + h*l2/2,I_pat2(num) + h*j2/2);
+    l3 = X_p2(i + h/2,G_pat2(num) + h*k2/2,X_pat2(num) + h*l2/2,I_pat2(num) + h*j2/2);
+    j3 = I_p2(i + h/2,G_pat2(num) + h*k2/2,X_pat2(num) + h*l2/2,I_pat2(num) + h*j2/2,U2(num));
+    
+    k4 = G_p2(i + h,G_pat2(num) + h*k3,X_pat2(num) + h*l3,I_pat2(num) + h*j3);
+    l4 = X_p2(i + h,G_pat2(num) + h*k3,X_pat2(num) + h*l3,I_pat2(num) + h*j3);
+    j4 = I_p2(i + h,G_pat2(num) + h*k3,X_pat2(num) + h*l3,I_pat2(num) + h*j3,U2(num));
+    
+
+
+    if num < x +1
+        G_pat2(num+1) = G_pat2(num) + h*(k1+2*k2+2*k3+k4)/6;
+        X_pat2(num+1) = X_pat2(num) + h*(l1+2*l2+2*l3+l4)/6;
+        I_pat2(num+1) = I_pat2(num) + h*(j1+2*j2+2*j3+j4)/6;
+    end
+
+    %.......................patient3................................
+    e3(num) = 70 - G_pat3(num);
+    if num ~= 1
+        e3_d(num) = (e3(num)-e3(num-1))/0.05;
+    end
+
+    q1 = e3(num);
+    q2 = e3_d(num);
+
+    [mu1,mu2,mu3,mu4,mu5,mu6,mu7,mu8,mu9,mu10] = MU(q1,q2);
+        
+    wppp1 = min(mu1,mu8); %pl
+    wppp2 = min(mu1,mu9); %pl
+    wppp3 = min(mu1,mu10); %pl
+    wppp4 = min(mu2,mu8); %pl
+    wppp5 = min(mu2,mu9); %pb
+    wppp6 = min(mu2,mu10); %pb
+    wppp7 = min(mu3,mu8); %pm
+    wppp8 = min(mu3,mu9);  %pm
+    wppp9 = min(mu3,mu10);%pm
+    wppp10 = min(mu4,mu8); %ps
+    wppp11 = min(mu4,mu9);%ps
+    wppp12 = min(mu4,mu10);%ps
+    wppp13 = min(mu5,mu8); %z
+    wppp14 = min(mu5,mu9);%z
+    wppp15 = min(mu5,mu10);%z
+    wppp16 = min(mu6,mu8); %ns
+    wppp17 = min(mu6,mu9);%ns
+    wppp18 = min(mu6,mu10);%nb
+    wppp19 = min(mu7,mu8); %nb
+    wppp20 = min(mu7,mu9);%nb
+    wppp21 = min(mu7,mu10);%nb
+ 
+    NB_o = NB;
+    NS_o = NS;
+    Z_o = Z;
+    PS_o = PS;
+    PM_o = PM;
+    PB_o = PB;
+    PL_o = PL;
+    
+    nn = (wppp1*PL_o+wppp2*PL_o+wppp3*PL_o+wppp4*PL_o++wppp5*PB_o+wppp6*PB_o+wppp7*PM_o+wppp8*PM_o+wppp9*PM_o+wppp10*PS_o ...
+        +wppp11*PS_o+wppp12*PS_o+wppp13*Z_o+wppp14*Z_o+wppp15*Z_o+wppp16*NS_o+wppp17*NS_o+wppp18*NB_o+wppp19*NB_o+wppp20*NB_o+wppp21*NB_o)...
+        /(wppp1+wppp2+wppp3+wppp4+wppp5+wppp6+wppp7+wppp8+wppp9+wppp10+wppp11+wppp12+wppp13+wppp14+wppp15+wppp16+wppp17+wppp18+wppp19+wppp20+wppp21);
+
+    U3(num) = sat(nn);
+
+    k1 = G_p3(i,G_pat3(num),X_pat3(num),I_pat3(num));
+    l1 = X_p3(i,G_pat3(num),X_pat3(num),I_pat3(num));
+    j1 = I_p3(i,G_pat3(num),X_pat3(num),I_pat3(num),U3(num));
+
+    k2 = G_p3(i + h/2,G_pat3(num) + h*k1/2,X_pat3(num) + h*l1/2,I_pat3(num) + h*j1/2);
+    l2 = X_p3(i + h/2,G_pat3(num) + h*k1/2,X_pat3(num) + h*l1/2,I_pat3(num) + h*j1/2);
+    j2 = I_p3(i + h/2,G_pat3(num) + h*k1/2,X_pat3(num) + h*l1/2,I_pat3(num) + h*j1/2,U3(num));
+
+    k3 = G_p3(i + h/2,G_pat3(num) + h*k2/2,X_pat3(num) + h*l2/2,I_pat3(num) + h*j2/2);
+    l3 = X_p3(i + h/2,G_pat3(num) + h*k2/2,X_pat3(num) + h*l2/2,I_pat3(num) + h*j2/2);
+    j3 = I_p3(i + h/2,G_pat3(num) + h*k2/2,X_pat3(num) + h*l2/2,I_pat3(num) + h*j2/2,U3(num));
+    
+    k4 = G_p3(i + h,G_pat3(num) + h*k3,X_pat3(num) + h*l3,I_pat3(num) + h*j3);
+    l4 = X_p3(i + h,G_pat3(num) + h*k3,X_pat3(num) + h*l3,I_pat3(num) + h*j3);
+    j4 = I_p3(i + h,G_pat3(num) + h*k3,X_pat3(num) + h*l3,I_pat3(num) + h*j3,U3(num));
+    
+    if num < x +1
+        G_pat3(num+1) = G_pat3(num) + h*(k1+2*k2+2*k3+k4)/6;
+        X_pat3(num+1) = X_pat3(num) + h*(l1+2*l2+2*l3+l4)/6;
+        I_pat3(num+1) = I_pat3(num) + h*(j1+2*j2+2*j3+j4)/6;
+    end
+       num = num +1; %進入下一時刻
+end
+figure(4)
+subplot(2,1,2)
+hold on
+plot(tn,U1,'b')
+yline(0)
+title('u(t)')
+legend({'patient1'},"Location","northeast")
+ylabel('(MicroU)/mg/min2')
+xlabel('time(min)')
+
+subplot(2,1,1)
+hold on
+plot(tn,I_pat1,'b')
+yline(7)
+title('I(t)')
+legend({'patient1'},"Location","northeast")
+xlabel('time(min)')
+ylabel('(MicroU/ml)')
+
+figure(5)
+subplot(3,1,1)
+hold on
+plot(tn,e1,'b')
+yline(0)
+title('e(t)')
+legend({'patient1'},"Location","northeast")
+
+xlabel('time(min)')
+
+subplot(3,1,2)
+hold on
+plot(tn,e1_d,'b')
+yline(7)
+title('e(t) derivative')
+legend({'patient1'},"Location","northeast")
+xlabel('time(min)')
+ylim([-0.2,0.1])
+
+subplot(3,1,3)
+hold on
+plot(tn,G_pat1,'b')
+yline(70)
+legend({'patient1'},"Location","northeast")
+title('G(t)')
+ylabel('(mg/dl)')
+xlabel('time(min)')
+
+
+figure(6)
+subplot(3,1,3)
+hold on
+plot(tn,U1,'b')
+plot(tn,U2,'--r')
+plot(tn,U3,'--g')
+yline(0)
+title('u(t)')
+legend({'patient1','patient2','patient3'},"Location","northeast")
+ylabel('(MicroU)/mg/min2')
+xlabel('time(min)')
+
+subplot(3,1,2)
+hold on
+plot(tn,I_pat1,'b')
+plot(tn,I_pat2,'--r')
+plot(tn,I_pat3,'--g')
+yline(7)
+title('I(t)')
+legend({'patient1','patient2','patient3'},"Location","northeast")
+
+xlabel('time(min)')
+ylabel('(MicroU/ml)')
+
+subplot(3,1,1)
+hold on
+plot(tn,G_pat1,'b')
+plot(tn,G_pat2,'--r')
+plot(tn,G_pat3,'--g')
+yline(70)
+legend({'patient1','patient2','patient3'},"Location","northeast")
+title('G(t)')
+ylabel('(mg/dl)')
+xlabel('time(min)')
+
+
+figure(7)
+hold on
+plot(tn,G_pat1,'b')
+plot(tn,G_pat1I,'--r')
+legend({'patient1','patient1 identifier'},"Location","northeast")
+xlabel('time(min)')
+ylabel('(mg/dl)')
+
+%Bergman's mininal modal公版
+function g = G_n(t,p1,Gb,G,X,I)
+    % meal disturbance
+    %........................
+    w = t-500; 
+    w(w<0) = inf;
+    meal  = 0.2*exp(-0.02*t)+ 0.2*exp(-0.02*w);
+    %........................
+    g = -p1*(G-Gb)-X*G + meal;
+end
+  
+function x = X_n(t,p2,p3,Ib,G,X,I)
+    x = -p2*X+p3*(I-Ib);
+end
+
+function i = I_n(t,n,Ib,r,h,G,X,I,u)
+    x = max(G-h,0);
+    i = -n*(I-Ib)+r*x*t+u;
+end
+
+
+%..........patient1..........
+function g_p1 = G_p1(t,G,X,I)
+    g_p1 = G_n(t,0,70,G,X,I);
+end
+
+function x_p1 = X_p1(t,G,X,I)
+    x_p1 = X_n(t,0.02,5.3*10^-6,7,G,X,I);
+
+end
+
+function i_p1 = I_p1(t,G,X,I,u)
+     i_p1 = I_n(t,0.3,7,0,78,G,X,I,u);
+end
+
+%..........patient2..........
+function g_p2 = G_p2(t,G,X,I)
+    g_p2 = G_n(t,0,70,G,X,I);
+end
+
+function x_p2 = X_p2(t,G,X,I)
+    x_p2 = X_n(t,0.018,3.54*10^-6,7,G,X,I);
+
+end
+
+function i_p2 = I_p2(t,G,X,I,u)
+     i_p2 = I_n(t,0.2465,7,0,77.5783,G,X,I,u);
+end
+
+%..........patient3..........
+function g_p3 = G_p3(t,G,X,I)
+    g_p3 = G_n(t,0,70,G,X,I);
+end
+
+function x_p3 = X_p3(t,G,X,I)
+    x_p3 = X_n(t,0.0242,7.08*10^-6,7,G,X,I);
+
+end
+
+function i_p3 = I_p3(t,G,X,I,u)
+     i_p3 = I_n(t,0.2814,7,0,82.9370,G,X,I,u);
+end
+
+
+%..........function...........
+%FLC mf 繪製區(非必要)
+% function trap = trapezoid_up_wave(t,start,fin)
+%     num = 0;
+%     for i = t
+%         num = num + 1;
+%         if i < start
+%             trap(num) = 1;
+%         elseif i >= fin
+%             trap(num) = 0;
+%         elseif i >= start && i < fin
+%             trap(num) = 1/(start - fin) * (i - fin);
+%         end
+%     end
+% end
+% 
+% function trap = trapezoid_down_wave(t,start,fin)
+%     num = 0;
+%     for i = t
+%         num = num + 1;
+%         if i < start
+%             trap(num) = 0;
+%         elseif i >= fin
+%             trap(num) = 1;
+%         elseif i >= start && i < fin
+%             trap(num) = 1/(fin - start) * (i - start);
+%         end
+%     end
+% end
+% 
+% function tri = triangle_wave(t,start,middle,fin)
+%     num = 0;
+%     for i = t
+%         num = num + 1;
+%         if i < start
+%             tri(num) = 0;
+%         elseif i >= fin
+%             tri(num) = 0;
+%         elseif i >= start && i < middle
+%             tri(num) = 1/(middle-start)*(i-start);
+%         else 
+%             tri(num) = 1/(middle-fin)*(i-fin);
+%         end
+%     end
+% end
+%................
+
+%計算MF數值-三角波
+function mem = tri_member(i,start,middle,fin)
+    if i < start
+        mem = 0;
+    elseif i >= fin
+        mem = 0;
+    elseif i >= start && i < middle
+        mem = 1/(middle-start)*(i-start);
+    else 
+        mem = 1/(middle-fin)*(i-fin);
+    end
+end
+
+%計算MF數值-三角波down
+function mem1 = trape_down_member(i,start,fin)
+    if i < start
+        mem1 = 0;
+    elseif i >= fin
+        mem1 = 1;
+    elseif i >= start && i < fin
+        mem1 = 1/(fin - start) * (i - start);
+    end
+end
+
+%計算MF數值-三角波up
+function mem2 = trape_up_member(i,start,fin)
+    if i < start
+        mem2 = 1;
+    elseif i >= fin
+        mem2 = 0;
+    elseif i >= start && i < fin
+        mem2 = 1/(start - fin) * (i - fin);
+    end
+end
+
+%計算MF數值-input1七個 input2三個
+function [mu1,mu2,mu3,mu4,mu5,mu6,mu7,mu8,mu9,mu10] = MU(q1,q2)
+    mu1 = trape_up_member(q1,-10,-8); %NL
+    mu2 = tri_member(q1,-9,-7,-6);   %NB
+    mu3 = tri_member(q1,-7,-5,-4);     %NM
+    mu4 = tri_member(q1,-5,-3,-1);      %NS
+    mu5 = tri_member(q1,-2,0,0.1);       %z
+    mu6 = tri_member(q1,-0.5,1,1.5);        %ps
+    mu7 = trape_down_member(q1,1,2);   %pb
+
+    mu8 = trape_up_member(q2,-0.2,0);
+    mu9 = tri_member(q2,-0.1,0,0.05);
+    mu10 = trape_down_member(q2,0,0.1);
+end
+
+%使胰島素注射量u(t)恆大於0
+function y=sat(x);
+    if x<0 
+        y=0;
+    else 
+        y=x;
+    end
+end
+
