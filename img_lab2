@@ -1,0 +1,27 @@
+import cv2
+import numpy as np
+from matplotlib import pyplot as plt
+
+if __name__ == '__main__':
+    image = cv2.imread("Lab2_3.png", 0)
+
+    # 進行傅立葉變換
+    f = np.fft.fft2(image)
+    fshift = np.fft.fftshift(f)
+
+    # 計算頻譜和相位
+    magnitude_spectrum = 20 * np.log(np.abs(fshift))
+    phase_spectrum = np.angle(fshift)
+
+    # 顯示頻譜
+    plt.subplot(121), plt.imshow(magnitude_spectrum, cmap='gray')
+    plt.title('Magnitude Spectrum'), plt.xticks([]), plt.yticks([])
+
+    # 顯示相位
+    plt.subplot(122), plt.imshow(phase_spectrum, cmap='gray')
+    plt.title('Phase Spectrum'), plt.xticks([]), plt.yticks([])
+
+    plt.show()
+
+
+
