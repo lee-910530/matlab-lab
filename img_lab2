@@ -1,27 +1,87 @@
+#%% libraries
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
+
+def frequency_show(image):
+    mag = 20 * np.log(1+np.abs(image))
+    m = mag/mag.max()*255
+    mag = np.uint8(m)
+
+    return mag
+
+def low_pass_filter(image_freq,D0):
+    M,N = image_freq.shape
+    H = np.zeros((M,N), dtype=np.float32)
+    D0 = 10
+    for u in range(M):
+        for v in range(N):
+            D = np.sqrt((u-M/2)**2 + (v-N/2)**2)
+            H[u,v] = np.exp(-D**2/(2*D0*D0))
+    return H
 
 if __name__ == '__main__':
-    image = cv2.imread("Lab2_3.png", 0)
+    #圖像輸入
+    f = cv2.imread('lab2_3.png', 0)
+    cv2.imshow('image', f)
 
-    # 進行傅立葉變換
-    f = np.fft.fft2(image)
-    fshift = np.fft.fftshift(f)
+    #改成頻域
+    F = np.fft.fftshift(np.fft.fft2(f))
 
-    # 計算頻譜和相位
-    magnitude_spectrum = 20 * np.log(np.abs(fshift))
-    phase_spectrum = np.angle(fshift)
+    image_F = frequency_show(F)
+    cv2.imshow('magnitude_spectrum_before', image_F)
 
-    # 顯示頻譜
-    plt.subplot(121), plt.imshow(magnitude_spectrum, cmap='gray')
-    plt.title('Magnitude Spectrum'), plt.xticks([]), plt.yticks([])
+    # low_pass
+    L_P = low_pass_filter(F,20)
+    cv2.imshow("magnitude_spectrum_lowpass",L_P)
 
-    # 顯示相位
-    plt.subplot(122), plt.imshow(phase_spectrum, cmap='gray')
-    plt.title('Phase Spectrum'), plt.xticks([]), plt.yticks([])
+    # lowpass*image
+    FLP = L_P * F
+    lowpass_image_F = frequency_show(FLP)
+    cv2.imshow("magnitude_spectrum_after",lowpass_image_F)
+    print(lowpass_image_F[50])
+    
+    FLP = np.fft.ifftshift(FLP)
+    fLP = np.abs(np.fft.ifft2(FLP))
+    # %%
+    cv2.imshow("image_lowpass",np.uint8(fLP))
 
+    plt.imshow(fLP, cmap='gray')
+    plt.axis('off')
     plt.show()
 
+    cv2.waitKey(0) # key any
+    cv2.destroyAllWindows()
 
+    # # create mask g(x,y)
+    # gMask = f - fLP
 
+    # plt.imshow(gMask, cmap='gray')
+    # plt.axis('off')
+    # plt.show()
+
+    # # unsharp masking
+    # k = 5
+    # g = f + k*gMask
+
+    # plt.imshow(g, cmap='gray')
+    # plt.axis('off')
+    # plt.show()
+
+    # g = np.clip(g, 0, 255)
+    # plt.imshow(g, cmap='gray')
+    # plt.axis('off')
+    # plt.show()
+
+    # # Unsharp Masking in Frequency Domain
+    # G = (1 + k*(1-H))*F
+    # g = np.abs(np.fft.ifft2(np.fft.ifftshift(G)))
+    # plt.imshow(g, cmap='gray')
+    # plt.axis('off')
+    # plt.show()
+
+    # g = np.clip(g, 0, 255)
+    # plt.imshow(g, cmap='gray')
+    # plt.axis('off')
+    # plt.show()
+# %%
