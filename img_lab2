@@ -1,87 +1,107 @@
-#%% libraries
 import cv2
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-def frequency_show(image):
-    mag = 20 * np.log(1+np.abs(image))
-    m = mag/mag.max()*255
-    mag = np.uint8(m)
+def canny(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    blur = cv2.GaussianBlur(gray, (5,5), 0)
+    canny = cv2.Canny(blur, 50, 150)
+    return canny
 
-    return mag
+def region_of_interest(image):
+    height = image.shape[0]
+    width = image.shape[1]
+    mask = np.zeros_like(image)
+    points = [(200, 650), (600,450), (680,400), (1200,650)]
 
-def low_pass_filter(image_freq,D0):
-    M,N = image_freq.shape
-    H = np.zeros((M,N), dtype=np.float32)
-    D0 = 10
-    for u in range(M):
-        for v in range(N):
-            D = np.sqrt((u-M/2)**2 + (v-N/2)**2)
-            H[u,v] = np.exp(-D**2/(2*D0*D0))
-    return H
+    triangle = np.array([points], np.int32)
+    cv2.fillPoly(mask, triangle, 255)
+    masked_image = cv2.bitwise_and(image, mask)
+    return masked_image
+
+def display_lines(image,lines):
+    line_image = np.zeros_like(image)
+    if lines is not None:
+        for line in lines:
+            for x1, y1, x2, y2 in line:
+                cv2.line(line_image,(x1,y1),(x2,y2),(255,0,0),10)
+    return line_image
+
+def make_points(image, line):
+    slope, intercept = line
+    y1 = int(image.shape[0])
+    y2 = int(y1*3/5)
+    x1 = int((y1-intercept)/slope)
+    x2 = int((y2-intercept)/slope)
+    return [[x1, y1, x2, y2]]
+
+def average_slope_intercept(image, lines):
+    left_fit = []
+    right_fit = []
+    if lines is None:
+        return None
+    for line in lines:
+        for x1, y1, x2, y2 in line:
+            fit = np.polyfit((x1,x2), (y1,y2), 1)
+            slope = fit[0]
+            intercept = fit[1]
+            if slope < 0:
+                left_fit.append((slope,intercept))
+            else:
+                right_fit.append((slope,intercept))
+    left_fit_average = np.average(left_fit, axis = 0)
+    right_fit_average = np.average(right_fit, axis = 0)
+    left_line = make_points(image, left_fit_average)
+    right_line = make_points(image, right_fit_average)
+    averaged_lines = [left_line, right_line]
+    return averaged_lines
+
+
+def multi_transform(img, points):
+    # 定义源点和目标点
+    pts1 = np.array(points, dtype=np.float32)
+    # 假设目标点为变换后的四个角点，调整这些点的位置以满足实际需求
+    width, height = 200, 100  # 目标图像的宽度和高度
+    pts2 = np.array([[0, 0], [width, 0], [width, height], [0, height]], dtype=np.float32)
+
+    # 计算透视变换矩阵
+    matrix = cv2.getPerspectiveTransform(pts1, pts2)
+
+    # 进行透视变换
+    transformed_img = cv2.warpPerspective(img, matrix, (width, height))
+
+    return transformed_img
+
 
 if __name__ == '__main__':
-    #圖像輸入
-    f = cv2.imread('lab2_3.png', 0)
-    cv2.imshow('image', f)
+    img = cv2.imread('lab3.jpg', -1)
+    img_show = np.copy(img)
+    lane_image = np.copy(img)
+    canny_image = canny(lane_image)
+    # cv2.imshow("step 1", canny_image)
+    cropped_canny = region_of_interest(canny_image)
+    # cv2.imshow("step 2", cropped_canny)
+    lines = cv2.HoughLinesP(cropped_canny, 2, np.pi / 180, 100, np.array([]), minLineLength=40, maxLineGap=5)
+    # cv2.imshow("Result", display_lines(lane_image, lines))
 
-    #改成頻域
-    F = np.fft.fftshift(np.fft.fft2(f))
+    averaged_lines = average_slope_intercept(img, lines)
 
-    image_F = frequency_show(F)
-    cv2.imshow('magnitude_spectrum_before', image_F)
+    arr = np.array(averaged_lines)
+    point = arr.reshape(4, 2)
+    pst1 = [point[1],point[3],point[2],point[0]]
 
-    # low_pass
-    L_P = low_pass_filter(F,20)
-    cv2.imshow("magnitude_spectrum_lowpass",L_P)
+    print(point)
 
-    # lowpass*image
-    FLP = L_P * F
-    lowpass_image_F = frequency_show(FLP)
-    cv2.imshow("magnitude_spectrum_after",lowpass_image_F)
-    print(lowpass_image_F[50])
-    
-    FLP = np.fft.ifftshift(FLP)
-    fLP = np.abs(np.fft.ifft2(FLP))
-    # %%
-    cv2.imshow("image_lowpass",np.uint8(fLP))
+    # for i in range(4):
+    #     show = cv2.circle(img_show,point[i],5,(255,0,0),5)
+    #     img_show = show
+    # cv2.imshow("Result", img_show)
 
-    plt.imshow(fLP, cmap='gray')
-    plt.axis('off')
-    plt.show()
+    qq = multi_transform(img,pst1)
 
-    cv2.waitKey(0) # key any
-    cv2.destroyAllWindows()
+    cv2.imshow("dfdf", qq)
 
-    # # create mask g(x,y)
-    # gMask = f - fLP
+    cv2.waitKey(0)
+    cv2.destroyWindow()
 
-    # plt.imshow(gMask, cmap='gray')
-    # plt.axis('off')
-    # plt.show()
 
-    # # unsharp masking
-    # k = 5
-    # g = f + k*gMask
-
-    # plt.imshow(g, cmap='gray')
-    # plt.axis('off')
-    # plt.show()
-
-    # g = np.clip(g, 0, 255)
-    # plt.imshow(g, cmap='gray')
-    # plt.axis('off')
-    # plt.show()
-
-    # # Unsharp Masking in Frequency Domain
-    # G = (1 + k*(1-H))*F
-    # g = np.abs(np.fft.ifft2(np.fft.ifftshift(G)))
-    # plt.imshow(g, cmap='gray')
-    # plt.axis('off')
-    # plt.show()
-
-    # g = np.clip(g, 0, 255)
-    # plt.imshow(g, cmap='gray')
-    # plt.axis('off')
-    # plt.show()
-# %%
