@@ -57,20 +57,23 @@ def average_slope_intercept(image, lines):
     return averaged_lines
 
 
-def multi_transform(img, points):
-    # 定义源点和目标点
-    pts1 = np.array(points, dtype=np.float32)
-    # 假设目标点为变换后的四个角点，调整这些点的位置以满足实际需求
-    width, height = 200, 100  # 目标图像的宽度和高度
-    pts2 = np.array([[0, 0], [width, 0], [width, height], [0, height]], dtype=np.float32)
+# def get_perspective_mat(src):
+ 
+#     src_points = np.array([src[0], src[2], src[1], src[3]], dtype = "float32")
+#     dst_points = np.array([src[0], src[2], [src[0][0], 100.], [src[2][0], 100.]], dtype = "float32")
+ 
+#     M = cv2.getPerspectiveTransform(src_points, dst_points)
+ 
+#     return M
 
-    # 计算透视变换矩阵
-    matrix = cv2.getPerspectiveTransform(pts1, pts2)
-
-    # 进行透视变换
-    transformed_img = cv2.warpPerspective(img, matrix, (width, height))
-
-    return transformed_img
+def get_perspective_mat():
+ 
+    src_points = np.array([src[0], src[2], src[1], src[3]], dtype = "float32")
+    dst_points = np.array([src[0], [src[0][0], 270.], src[1], [src[1][0], 270]], dtype = "float32")
+ 
+    M = cv2.getPerspectiveTransform(src_points, dst_points)
+ 
+    return M
 
 
 if __name__ == '__main__':
@@ -88,20 +91,25 @@ if __name__ == '__main__':
 
     arr = np.array(averaged_lines)
     point = arr.reshape(4, 2)
-    pst1 = [point[1],point[3],point[2],point[0]]
 
-    print(point)
+    up_left = ((point[0] + 3*point[1])/4).astype(int)
+    up_right = ((point[2] + 3*point[3])/4).astype(int)
+    down_left = ((3*point[0] + point[1])/4).astype(int)
+    down_right = ((3*point[2] + point[3])/4).astype(int)
+    
+    img = cv2.circle(img,up_left,1,(0,255,0),5)
+    img = cv2.circle(img,up_right,1,(0,255,0),5)
+    img = cv2.circle(img,down_left,1,(0,255,0),5)
+    img = cv2.circle(img,down_right,1,(0,255,0),5)
+    
+    src_points = np.array([down_left,down_right,up_left,up_right], dtype = "float32")
+    dst_points = np.array([[400,720],[800,720],[400,300],[800,300]], dtype = "float32")
+    M = cv2.getPerspectiveTransform(np.float32(src_points), dst_points)
+    print(M)
+    perspective = cv2.warpPerspective(img, M, (1200, 800), cv2.INTER_LINEAR)
+ 
 
-    # for i in range(4):
-    #     show = cv2.circle(img_show,point[i],5,(255,0,0),5)
-    #     img_show = show
-    # cv2.imshow("Result", img_show)
-
-    qq = multi_transform(img,pst1)
-
-    cv2.imshow("dfdf", qq)
+    cv2.imshow("dfdf", perspective)
 
     cv2.waitKey(0)
-    cv2.destroyWindow()
-
-
+    cv2.destroyAllWindows()
